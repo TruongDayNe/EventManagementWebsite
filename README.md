@@ -9,5 +9,7 @@ This is a monorepo for the Event Management Website project, containing both fro
 
 ## Setup
 1. Clone the repository.
-2. Navigate to `/frontend` and run `npm install` then `npm start`.
-3. Navigate to `/backend/EventManagementApi` and run `dotnet run`.cd
+2. Navigate to `/frontend` and run `npm install` then `npm start`
+3. Navigate to `/backend/EventManagementApi` and run `dotnet restore`
+
+### For further details, access frontend/backend folder
