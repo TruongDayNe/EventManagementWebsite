@@ -37,6 +37,8 @@ namespace EventManagementWebAPI.Controllers
             var loginResponse = await authService.Login(user);
             if (loginResponse.IsAuthenticated)
             {
+                user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(2);
+                user.RefreshToken = loginResponse.RefreshToken;
                 return Ok(loginResponse);    
             }    
             return Unauthorized("Login failed");

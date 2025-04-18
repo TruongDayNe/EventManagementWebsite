@@ -6,6 +6,7 @@ using EventManagementWebAPI.Services;
 using EventManagementWebAPI.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using System.Text;
 
@@ -59,11 +60,26 @@ builder.Services.AddIdentity<AppUser,IdentityRole>(options =>
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
+var clientId = builder.Configuration["Authentication:Google:ClientId"];
+var clientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
+{
+    throw new InvalidOperationException("Google authentication credentials are missing.");
+}
 builder.Services.AddAuthentication(options =>
     {
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultSignInScheme = JwtBearerDefaults.AuthenticationScheme;
     })
+    .AddCookie()
+    .AddGoogle(option =>
+    {
+        option.ClientId = clientId;
+        option.ClientSecret = clientSecret;
+        option.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    } 
+    )
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -80,6 +96,19 @@ builder.Services.AddAuthentication(options =>
     });
 
 builder.Services.AddTransient<IAuthService, AuthService>();
+builder.Services.AddScoped<IEventService, EventService>();
+builder.Services.AddScoped<IUserService, UserService>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPolicy",
+        builder =>
+        {
+            builder.AllowAnyMethod()
+                   .AllowAnyHeader()
+                   .WithOrigins("http://localhost:5173");
+        });
+});
 builder.Services.AddControllers();
 
 builder.Services.AddOpenApi();
@@ -94,6 +123,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors("CorsPolicy");
 
 app.UseHttpsRedirection();
 

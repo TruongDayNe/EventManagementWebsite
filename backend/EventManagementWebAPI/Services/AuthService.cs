@@ -24,7 +24,8 @@ namespace EventManagementWebAPI.Services
         {
             var appUser = new AppUser
             {
-                UserName = user.UserName,
+                Name = user.Name, // for registration
+                UserName = user.UserName, //For refresh token creation
                 Email = user.Email,
                 Password = user.Password,
             };
@@ -63,13 +64,23 @@ namespace EventManagementWebAPI.Services
             return response;
         }
 
-
-        // JWT != Bearer Token
         public string GenerateTokenString(AppUser user)
         {
+            if (user == null)
+            {
+                throw new ArgumentException("User cannot be null", nameof(user));
+            }
+            if (string.IsNullOrEmpty(user.UserName))
+            {
+                throw new ArgumentException("User must have a username.", nameof(user));
+            }
+            if (string.IsNullOrEmpty(user.Email))
+            {
+                throw new ArgumentException("User must have a username.", nameof(user));
+            }
             IEnumerable<Claim> claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, user.Name),
+                new Claim(ClaimTypes.Name, user.Email), //we don't need name in claims that much, and also can't pass email to RTE
                 new Claim(ClaimTypes.Role, "Admin"),
             };
 
@@ -87,7 +98,7 @@ namespace EventManagementWebAPI.Services
 
             var securityToken = new JwtSecurityToken(
                 claims: claims,
-                expires: DateTime.Now.AddSeconds(60),
+                expires: DateTime.Now.AddMinutes(60),
                 signingCredentials: signingCredentials,
                 issuer: config.GetSection("JWT:Issuer").Value,
                 audience: config.GetSection("JWT:Audience").Value
@@ -114,10 +125,22 @@ namespace EventManagementWebAPI.Services
                 return response;
             }
 
-            var appUser = await userManager.FindByNameAsync(principal.Identity.Name);
+            // we're actually using the email as the username here
+            var appUser = await userManager.FindByEmailAsync(principal.Identity.Name);
 
-            if (appUser == null || appUser.RefreshToken != model.RefreshToken || appUser.RefreshTokenExpiry > DateTime.UtcNow)
+            if (appUser == null)
             {
+                Console.WriteLine("User not found");
+                return response;
+            }
+            if (appUser.RefreshToken != model.RefreshToken)
+            {
+                Console.WriteLine("Invalid refresh token");
+                return response;
+            }
+            if (appUser.RefreshTokenExpiry < DateTime.UtcNow)
+            {
+                Console.WriteLine("Refresh token is expired");
                 return response;
             }
 
