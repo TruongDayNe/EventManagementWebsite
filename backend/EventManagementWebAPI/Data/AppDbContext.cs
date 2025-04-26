@@ -1,36 +1,28 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity;
-using EventManagementWebAPI.Models;
+﻿using MongoDB.Driver;
 using Microsoft.Extensions.Options;
-using MongoDB.Driver;
-using MongoDB.EntityFrameworkCore.Extensions;
+using EventManagementWebAPI.Models;
 
 namespace EventManagementWebAPI.Data
 {
-    public class AppDbContext : IdentityDbContext<AppUser>
+    public class AppDbContext
     {
-        public AppDbContext(DbContextOptions options) : base(options) { }
+        private readonly IMongoDatabase _database;
 
-        public DbSet<Event> Events { get; set; }
-        public DbSet<Attendance> Attendances { get; set; }
-        public DbSet<Category> Categories { get; set; }
-        public DbSet<Status> Statuses { get; set; }
-        public DbSet<Checkin> Checkins { get; set; }
-        public DbSet<EventImage> EventImages { get; set; }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        public AppDbContext(IOptions<MongoDbConfigs> settings)
         {
-            base.OnModelCreating(modelBuilder);
-
-            modelBuilder.Entity<AppUser>().ToCollection("AspNetUsers");
-            modelBuilder.Entity<Event>().ToCollection("Events");
-            modelBuilder.Entity<Attendance>().ToCollection("Attendances");
-            modelBuilder.Entity<Category>().ToCollection("Categories");
-            modelBuilder.Entity<Status>().ToCollection("Statuses");
-            modelBuilder.Entity<Checkin>().ToCollection("Checkins");
-            modelBuilder.Entity<EventImage>().ToCollection("EventImages");
+            var client = new MongoClient(settings.Value.AtlasURI);
+            _database = client.GetDatabase(settings.Value.DatabaseName);
         }
-    }
 
+        public IMongoCollection<AppUser> AppUsers => _database.GetCollection<AppUser>("AppUsers");
+        public IMongoCollection<AppRole> AppRoles => _database.GetCollection<AppRole>("AppRoles");
+        public IMongoCollection<AppUserRole> AppUserRoles => _database.GetCollection<AppUserRole>("AppUserRoles");
+        public IMongoCollection<Event> Events => _database.GetCollection<Event>("Events");
+        public IMongoCollection<EventImage> EventImages => _database.GetCollection<EventImage>("EventImages");
+        public IMongoCollection<Attendance> Attendances => _database.GetCollection<Attendance>("Attendances");
+        public IMongoCollection<Category> Categories => _database.GetCollection<Category>("Categories");
+        public IMongoCollection<Checkin> Checkins => _database.GetCollection<Checkin>("Checkins");
+        public IMongoCollection<Status> Statuses => _database.GetCollection<Status>("Statuses");
+
+    }
 }

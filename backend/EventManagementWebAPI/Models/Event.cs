@@ -29,11 +29,12 @@ namespace EventManagementWebAPI.Models
         [BsonElement("Address"), BsonRepresentation(BsonType.String)]   
         public string Address { get; set; } = "54 Nguyễn Lương Bằng";
 
-        [BsonElement("Longitude"), BsonRepresentation(BsonType.Double)]
-        public double Longitude = 16.073652710981197;
-
         [BsonElement("Latitude"), BsonRepresentation(BsonType.Double)]
-        public double Latitude = 108.14986892217975;
+        public double Latitude = 108.152;
+
+        [BsonElement("Longitude"), BsonRepresentation(BsonType.Double)]
+        public double Longitude = 16.0748;
+
 
         [BsonElement("HostId"), BsonRepresentation(BsonType.String)]
         public string HostId { get; set; } = string.Empty;
@@ -46,16 +47,14 @@ namespace EventManagementWebAPI.Models
         [BsonElement("EndTime"), BsonRepresentation(BsonType.DateTime)]
         public DateTime EndTime { get; set; } = DateTime.Now.AddDays(8);
 
-        [BsonElement("CreateAt"), BsonRepresentation(BsonType.DateTime)]
-        public DateTime CreateAt { get; set; } = DateTime.Now;
-
         [BsonElement("StartCheckin"), BsonRepresentation(BsonType.DateTime)]
         public DateTime StartCheckin { get; set; } = DateTime.Now.AddDays(7);
 
         [BsonElement("EndCheckin"), BsonRepresentation(BsonType.DateTime)]
         public DateTime EndCheckin { get; set; } = DateTime.Now.AddDays(7);
 
-
+        [BsonElement("CreateAt"), BsonRepresentation(BsonType.DateTime)]
+        public DateTime CreateAt { get; set; } = DateTime.Now;
 
     }
 }
