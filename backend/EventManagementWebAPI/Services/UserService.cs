@@ -54,8 +54,6 @@ namespace EventManagementWebAPI.Services
             return true;
         }
 
-
-
         public async Task<CreateUserResult> CreateUserAsync(AppUser user, string password)
         {
             var result = new CreateUserResult();
@@ -128,6 +126,20 @@ namespace EventManagementWebAPI.Services
                 return false;
 
             var update = Builders<AppUser>.Update.Set(u => u.Email, newEmail);
+            var result = await _users.UpdateOneAsync(u => u.UserId.ToString() == userId, update);
+            return result.IsAcknowledged && result.ModifiedCount > 0;
+        }
+
+        public async Task<bool> UpdateNameAsync(string userId, string newName)
+        {
+            if (string.IsNullOrWhiteSpace(newName))
+                return false;
+
+            var existing = await _users.Find(u => u.Name == newName).FirstOrDefaultAsync();
+            if (existing != null)
+                return false;
+
+            var update = Builders<AppUser>.Update.Set(u => u.Name, newName);
             var result = await _users.UpdateOneAsync(u => u.UserId.ToString() == userId, update);
             return result.IsAcknowledged && result.ModifiedCount > 0;
         }

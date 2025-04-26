@@ -9,6 +9,7 @@ namespace EventManagementWebAPI.Services
         Task<AppUser?> GetUserById(string userId);
         Task<AppUser?> GetUserByUserName(string userName);
         Task<AppUser?> GetUserByEmail(string email);
+        Task<bool> UpdateNameAsync(string userId, string newName);
         Task<bool> UpdateUserNameAsync(string userId, string newUserName);   
         Task<bool> UpdateUserEmailAsync(string userId, string newEmail);
         Task<bool> UpdateUserPasswordAsync(string userId, string newPassword);

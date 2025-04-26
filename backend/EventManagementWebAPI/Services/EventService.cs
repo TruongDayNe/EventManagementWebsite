@@ -126,7 +126,7 @@ namespace EventManagementWebAPI.Services
 
         public async Task<bool> UpdateEventCategoryAsync(string eventId, string newCategory)
         {
-            var update = Builders<Event>.Update.Set(e => e.CategoryId, ObjectId.Parse(newCategory));
+            var update = Builders<Event>.Update.Set(e => new ObjectId(e.CategoryId), ObjectId.Parse(newCategory));
             var result = await _events.UpdateOneAsync(
                 e => e.EventId == ObjectId.Parse(eventId), update);
             return result.IsAcknowledged && result.ModifiedCount > 0;
@@ -142,7 +142,7 @@ namespace EventManagementWebAPI.Services
 
         public async Task<bool> UpdateEventStatusAsync(string eventId, string newEventStatus)
         {
-            var update = Builders<Event>.Update.Set(e => e.StatusId, ObjectId.Parse(newEventStatus));
+            var update = Builders<Event>.Update.Set(e => new ObjectId(e.StatusId), ObjectId.Parse(newEventStatus));
             var result = await _events.UpdateOneAsync(
                 e => e.EventId == ObjectId.Parse(eventId), update);
             return result.IsAcknowledged && result.ModifiedCount > 0;

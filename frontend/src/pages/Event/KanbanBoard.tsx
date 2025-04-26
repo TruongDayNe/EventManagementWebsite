@@ -39,7 +39,6 @@ const eventData: Event[] = [
     organizer: 'T',
     date: 'May 20, 2025',
     location: 'Convention Center, San Francisco',
-    attendees: 500,
     category: 'Technology',
   },
   {
@@ -50,7 +49,6 @@ const eventData: Event[] = [
     organizer: 'M',
     date: 'June 15, 2025',
     location: 'Central Park, New York',
-    attendees: 2500,
     category: 'Music',
   },
   {
@@ -61,7 +59,6 @@ const eventData: Event[] = [
     organizer: 'S',
     date: 'April 18-22, 2025',
     location: 'Innovation Hub, Austin',
-    attendees: 150,
     category: 'Business',
   },
   {
@@ -72,7 +69,6 @@ const eventData: Event[] = [
     organizer: 'F',
     date: 'April 15-25, 2025',
     location: 'Waterfront Plaza, Chicago',
-    attendees: 800,
     category: 'Food',
   },
   {
@@ -83,7 +79,6 @@ const eventData: Event[] = [
     organizer: 'M',
     date: 'April 1-5, 2025',
     location: 'Grand Hotel, London',
-    attendees: 300,
     category: 'Marketing',
   },
   {
@@ -94,7 +89,6 @@ const eventData: Event[] = [
     organizer: 'A',
     date: 'March 10-30, 2025',
     location: 'Modern Art Gallery, Paris',
-    attendees: 450,
     category: 'Art',
   },
   {
@@ -105,7 +99,6 @@ const eventData: Event[] = [
     organizer: 'E',
     date: 'Originally May 5, 2025',
     location: 'Eco Center, Seattle',
-    attendees: 600,
     category: 'Environment',
   },
 ];
@@ -119,7 +112,6 @@ interface Event {
   organizer: string;
   date: string;
   location: string;
-  attendees: number;
   category: string;
 }
 
@@ -128,11 +120,6 @@ export default function EventKanbanBoard() {
   const upcomingEvents = eventData.filter((event) => event.status === 'upcoming');
   const inProgressEvents = eventData.filter((event) => event.status === 'inProgress');
   const completedEvents = eventData.filter((event) => event.status === 'completed');
-
-  // Function to generate placeholder size based on event ID
-  const getPlaceholderSize = (id: number) => {
-    return id % 3 === 0 ? '500/300' : id % 2 === 0 ? '600/400' : '450/250';
-  };
 
   return (
     <>
@@ -161,11 +148,10 @@ export default function EventKanbanBoard() {
                   date={event.date}
                   description={event.description}
                   location={event.location}
-                  attendees={event.attendees}
                   category={event.category}
                   organizerInitial={event.organizer}
                   status={event.status}
-                  imageSize={getPlaceholderSize(event.id)}
+                  thumbnail='https://via.placeholder.com/500x300'
                 />
               ))}
             </KanbanColumn>
@@ -185,11 +171,10 @@ export default function EventKanbanBoard() {
                   date={event.date}
                   description={event.description}
                   location={event.location}
-                  attendees={event.attendees}
                   category={event.category}
                   organizerInitial={event.organizer}
                   status={event.status}
-                  imageSize={getPlaceholderSize(event.id)}
+                  thumbnail='https://via.placeholder.com/500x300'
                 />
               ))}
             </KanbanColumn>
@@ -209,11 +194,10 @@ export default function EventKanbanBoard() {
                   date={event.date}
                   description={event.description}
                   location={event.location}
-                  attendees={event.attendees}
                   category={event.category}
                   organizerInitial={event.organizer}
                   status={event.status}
-                  imageSize={getPlaceholderSize(event.id)}
+                  thumbnail='https://via.placeholder.com/500x300'
                 />
               ))}
             </KanbanColumn>

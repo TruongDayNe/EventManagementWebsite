@@ -24,6 +24,7 @@ import KanbanBoard from "./pages/Event/KanbanBoard";
 import LandingPage from "./pages/Dashboard/LandingPage";
 import EventDetail from "./pages/Event/EventDetail";
 import RequiredAuth from "./authContext/RequiredAuth";
+import ViewOnlyCalendar from "./pages/ViewOnlyCalendar";
 
 export default function App() {
   return (
@@ -41,7 +42,11 @@ export default function App() {
 
               {/* Others Page */}
               <Route path="/profile" element={<UserProfiles />} />
+              {/* Create Event */}
               <Route path="/calendar" element={<Calendar />} />
+              {/* View events */}
+              <Route path="/events" element={<ViewOnlyCalendar />} />
+
               <Route path="/blank" element={<Blank />} />
 
               {/* Forms */}

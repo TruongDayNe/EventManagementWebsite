@@ -158,7 +158,7 @@ export default function SignUpForm() {
                 Sign up with X
               </button> */}
             </div>
-            <div className="relative py-3 sm:py-5">
+            {/* <div className="relative py-3 sm:py-5">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-200 dark:border-gray-800"></div>
               </div>
@@ -167,7 +167,7 @@ export default function SignUpForm() {
                   Or
                 </span>
               </div>
-            </div>
+            </div> */}
             <form onSubmit={handleSubmit}>
               <div className="space-y-5">
                 {error && (

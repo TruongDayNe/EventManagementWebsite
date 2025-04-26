@@ -13,6 +13,9 @@ namespace EventManagementWebAPI.Models
         [BsonElement("UserId"), BsonRepresentation(BsonType.ObjectId)]
         public ObjectId UserId { get; set; } = ObjectId.GenerateNewId();
 
+        [BsonElement("Name"), BsonRepresentation(BsonType.String)]
+        public string Name { get; set; } = string.Empty;
+
         [BsonElement("UserName"), BsonRepresentation(BsonType.String)]
         public string UserName { get; set; } = string.Empty;
 

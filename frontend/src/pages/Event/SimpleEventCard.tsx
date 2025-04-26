@@ -12,7 +12,6 @@ import {
   Chip,
 } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
-import PeopleIcon from '@mui/icons-material/People';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 interface SimpleEventCardProps {
@@ -21,16 +20,15 @@ interface SimpleEventCardProps {
   date: string;
   description: string;
   location: string;
-  attendees: number;
   category: string;
   organizerInitial: string;
   status: 'upcoming' | 'inProgress' | 'completed' | 'cancelled';
-  imageSize: string;
+  thumbnail: string;
 }
 
 const StatusColors: Record<string, string> = {
-  upcoming: '#4CAF50',
-  inProgress: '#2196F3',
+  upcoming: '#2196F3',
+  inProgress: '#4CAF50',
   completed: '#9C27B0',
   cancelled: '#F44336',
 };
@@ -40,11 +38,10 @@ const SimpleEventCard: React.FC<SimpleEventCardProps> = ({
   title,
   date,
   location,
-  attendees,
   category,
   organizerInitial,
   status,
-  imageSize,
+  thumbnail,
 }) => {
   const navigate = useNavigate();
 
@@ -77,7 +74,7 @@ const SimpleEventCard: React.FC<SimpleEventCardProps> = ({
       <CardMedia
         component="img"
         height="150"
-        src={`https://source.unsplash.com/random/${imageSize}/?event`}
+        src={thumbnail}
         alt={title}
       />
       <CardHeader
@@ -99,12 +96,6 @@ const SimpleEventCard: React.FC<SimpleEventCardProps> = ({
           <LocationOnIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
           <Typography variant="body2" color="text.secondary">
             {location}
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-          <PeopleIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-          <Typography variant="body2" color="text.secondary">
-            {attendees} attendees
           </Typography>
         </Box>
         <Chip

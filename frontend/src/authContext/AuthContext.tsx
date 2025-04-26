@@ -1,7 +1,7 @@
 import { createContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
 
-// Base URL for the API (replace with your actual API base URL or use an environment variable)
+// Base URL for the API
 const API_BASE_URL = 'http://localhost:5121';
 
 // Set default base URL for axios
@@ -11,7 +11,9 @@ interface User {
   id: string;
   email: string;
   name: string;
+  userName: string;
   role?: string;
+  [key: string]: any; // Cho phép user chứa thêm các field khác (ví dụ: iss, aud, ... trong JWT)
 }
 
 interface AuthState {
@@ -64,7 +66,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   });
 
   // Decode JWT token to extract user details
-  const decodeJWT = (token: string): { id: string; email: string; name: string; role?: string; exp: number } => {
+  const decodeJWT = (token: string): User & { exp: number } => {
     try {
       const base64Url = token.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -75,22 +77,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .join('')
       );
       const decoded = JSON.parse(jsonPayload);
-      return {
-        id: decoded.sub || decoded.nameidentifier || '',
+
+      const user: User = {
+        id: decoded.sub || decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] || '',
         email: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || '',
-        name: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || '',
+        userName: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || '',
+        name: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'] || '',
         role: decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || undefined,
-        exp: decoded.exp || 0,
+        ...decoded, // thêm tất cả các field khác vào
       };
+
+      return { ...user, exp: decoded.exp || 0 };
     } catch (error) {
       console.error('Error decoding JWT:', error);
-      return { id: '', email: '', name: '', role: undefined, exp: 0 };
+      return {
+        id: '',
+        email: '',
+        userName: '',
+        name: '',
+        role: undefined,
+        exp: 0,
+      };
     }
   };
 
   // Check if token is expired
   const isTokenExpired = (exp: number): boolean => {
-    const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+    const currentTime = Math.floor(Date.now() / 1000);
     return exp < currentTime;
   };
 
@@ -115,7 +128,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             isAuthenticated: true,
           }));
 
-          // Validate token with backend
           await axios.get('/api/Auth/ValidateToken', {
             headers: { Authorization: `Bearer ${storedToken}` },
           });
@@ -146,13 +158,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error('Authentication failed');
       }
 
-      const { id, email: userEmail, name, role, exp } = decodeJWT(newToken);
+      const decodedUser = decodeJWT(newToken);
 
-      if (isTokenExpired(exp)) {
+      if (isTokenExpired(decodedUser.exp)) {
         throw new Error('Token expired');
       }
 
-      const user: User = { id, email: userEmail, name, role };
+      const { id, email: userEmail, userName, name, role, ...rest } = decodedUser;
+
+      const user: User = { id, email: userEmail, userName, name, role, ...rest };
 
       setAuth((prev) => ({
         ...prev,
@@ -183,13 +197,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error('Registration failed');
       }
 
-      const { id, email: userEmail, name, role, exp } = decodeJWT(newToken);
+      const decodedUser = decodeJWT(newToken);
 
-      if (isTokenExpired(exp)) {
+      if (isTokenExpired(decodedUser.exp)) {
         throw new Error('Token expired');
       }
 
-      const user: User = { id, email: userEmail, name, role };
+      const { id, email: userEmail, userName, name, role, ...rest } = decodedUser;
+
+      const user: User = { id, email: userEmail, userName, name, role, ...rest };
 
       setAuth((prev) => ({
         ...prev,
@@ -208,7 +224,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const googleLogin = async (googleData: { email: string; name: string; id: string }): Promise<void> => {
     try {
-      // First, try to log in with the Google email
       try {
         const response = await axios.post('/api/Auth/Login', {
           email: googleData.email,
@@ -217,13 +232,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const { token: newToken, isAuthenticated } = response.data;
 
         if (isAuthenticated) {
-          const { id, email: userEmail, name, role, exp } = decodeJWT(newToken);
+          const decodedUser = decodeJWT(newToken);
 
-          if (isTokenExpired(exp)) {
+          if (isTokenExpired(decodedUser.exp)) {
             throw new Error('Token expired');
           }
 
-          const user: User = { id, email: userEmail, name, role };
+          const { id, email: userEmail, userName, name, role, ...rest } = decodedUser;
+
+          const user: User = { id, email: userEmail, userName, name, role, ...rest };
 
           setAuth((prev) => ({
             ...prev,
@@ -240,7 +257,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('User not found, attempting to register:', loginError.message);
       }
 
-      // If login fails, register the user
       const response = await axios.post('/api/Auth/Register', {
         name: googleData.name,
         username: googleData.name.replace(/\s+/g, '').toLowerCase(),
@@ -253,13 +269,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error('Google registration failed');
       }
 
-      const { id, email: userEmail, name, role, exp } = decodeJWT(newToken);
+      const decodedUser = decodeJWT(newToken);
 
-      if (isTokenExpired(exp)) {
+      if (isTokenExpired(decodedUser.exp)) {
         throw new Error('Token expired');
       }
 
-      const user: User = { id, email: userEmail, name, role };
+      const { id, email: userEmail, userName, name, role, ...rest } = decodedUser;
+
+      const user: User = { id, email: userEmail, userName, name, role, ...rest };
 
       setAuth((prev) => ({
         ...prev,

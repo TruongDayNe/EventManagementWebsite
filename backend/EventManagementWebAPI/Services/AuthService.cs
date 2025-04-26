@@ -55,6 +55,8 @@ namespace EventManagementWebAPI.Services
             var role = await userService.GetUserRole(user.UserId.ToString()!);
             var claims = new[]
             {
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()!),
+                new Claim(ClaimTypes.GivenName, user.Name),
                 new Claim(ClaimTypes.Name, user.UserName),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, role)

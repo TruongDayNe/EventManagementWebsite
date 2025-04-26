@@ -45,6 +45,30 @@ namespace EventManagementWebAPI.Controllers
             return Ok(userRole);
         }
 
+        [HttpPut("{id}/Name")]
+        public IActionResult UpdateName(string id, [FromBody] string newName)
+        {
+            var user = _userService.GetUserById(id).Result;
+            if (user == null)
+            {
+                return NotFound("User not found");
+            }
+            _userService.UpdateNameAsync(id, newName);
+            return Ok("User name updated successfully");
+        }
+
+        [HttpPut("{id}/Address")]
+        public IActionResult UpdateAddress(string id, [FromBody] string newAddress)
+        {
+            var user = _userService.GetUserById(id).Result;
+            if (user == null)
+            {
+                return NotFound("User not found");
+            }
+            _userService.UpdateUserAddressAsync(id, newAddress);
+            return Ok("User address updated successfully");
+        }
+
 
     }
 }

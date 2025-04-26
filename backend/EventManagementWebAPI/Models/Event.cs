@@ -17,10 +17,10 @@ namespace EventManagementWebAPI.Models
         public string EventName { get; set; } = string.Empty;
 
         [BsonElement("CategoryId"), BsonRepresentation(BsonType.ObjectId)]
-        public ObjectId CategoryId { get; set; } = ObjectId.Empty;
+        public string CategoryId { get; set; } = string.Empty;
 
         [BsonElement("StatusId"), BsonRepresentation(BsonType.ObjectId)]
-        public ObjectId StatusId { get; set; } = ObjectId.Empty;
+        public string StatusId { get; set; } = string.Empty;
 
         [BsonElement("Description"), BsonRepresentation(BsonType.String)]
         public string Description { get; set; } = string.Empty;
@@ -51,7 +51,7 @@ namespace EventManagementWebAPI.Models
         public DateTime StartCheckin { get; set; } = DateTime.Now.AddDays(7);
 
         [BsonElement("EndCheckin"), BsonRepresentation(BsonType.DateTime)]
-        public DateTime EndCheckin { get; set; } = DateTime.Now.AddDays(7);
+        public DateTime EndCheckin { get; set; } = DateTime.Now.AddDays(8);
 
         [BsonElement("CreateAt"), BsonRepresentation(BsonType.DateTime)]
         public DateTime CreateAt { get; set; } = DateTime.Now;
