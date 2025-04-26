@@ -41,7 +41,8 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
- 
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+
 
 // CORS
 builder.Services.AddCors(options =>

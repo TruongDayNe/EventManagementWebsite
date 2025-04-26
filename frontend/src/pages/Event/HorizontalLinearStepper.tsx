@@ -11,7 +11,7 @@ import Calendar from '../Calendar';
 import DropzoneComponent from "../../components/form/form-elements/DropZone";
 import ComponentCard from '../../components/common/ComponentCard';
 import Label from '../../components/form/Label';
-import MultiSelect from "../../components/form/MultiSelect";
+import Select from "../../components/form/Select";
 import Input from '../../components/form/input/InputField';
 import TextArea from '../../components/form/input/TextArea';
 import { useState } from 'react'; 
@@ -19,6 +19,8 @@ import MapComponent from '../../components/MapComponent';
 import { LatLng } from 'leaflet';
 import TitlebarImageList from '../UiElements/TitlebarImageList';
 import Grid from '@mui/material/Grid'
+import { useEffect } from 'react';
+import axiosInstance from '../../api/axiosInstance';
 
 
 const steps = ['Add event details', 'Preview', 'Set date and time'];
@@ -69,15 +71,38 @@ export default function HorizontalLinearStepper() {
     setActiveStep(0);
   };
 
-  const multiOptions = [
-    { value: "1", text: "Option 1", selected: false },
-    { value: "2", text: "Option 2", selected: false },
-    { value: "3", text: "Option 3", selected: false },
-    { value: "4", text: "Option 4", selected: false },
-    { value: "5", text: "Option 5", selected: false },
-  ];
+  // Categories section
+  interface Category {
+    categoryName: string;
+  }
+  
+  const getCategories = async (): Promise<{ label: string; value: string }[]> => {
+    try {
+      const { data } = await axiosInstance.get<Category[]>('/api/Category');
+      const options = data.map((item) => ({
+        label: item.categoryName,
+        value: item.categoryName,
+      }));
+      console.log(options);
+      return options;
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+      return [];
+    }
+  };
 
-  const [selectedValues, setSelectedValues] = useState<string[]>([]);
+  const [options, setOptions] = useState<{ label: string; value: string }[]>([]);
+  
+  useEffect(() => {
+    getCategories().then((fetchedOptions) => {
+      setOptions(fetchedOptions);
+    });
+  }, []);
+  
+  const handleSelectChange = (value: string) => {
+    console.log('Selected value:', value);
+  };
+  // End category section
 
   const [message, setMessage] = useState("");
 
@@ -97,8 +122,8 @@ export default function HorizontalLinearStepper() {
             </Typography>
             <ComponentCard title="Event Details" className="mb-6">
               <div>
-                <Label htmlFor="input">Event name</Label>
-                <Input type="text" id="input" />
+                <Label htmlFor="inputEventName">Event name</Label>
+                <Input type="text" id="inputEventName" />
               </div>
               <div>
                 <Label>Description</Label>
@@ -110,15 +135,13 @@ export default function HorizontalLinearStepper() {
               </div>
 
               <div>
-                <MultiSelect
-                  label="Categories"
-                  options={multiOptions}
-                  defaultSelected={["1", "3"]}
-                  onChange={(values) => setSelectedValues(values)}
+                <Label>Event Category</Label>
+                <Select
+                  options ={options}
+                  placeholder="Select Category"
+                  onChange={handleSelectChange}
+                  className="dark:bg-dark-900"
                 />
-                <p className="sr-only">
-                  Selected Values: {selectedValues.join(", ")}
-                </p>
               </div>
 
               <div>

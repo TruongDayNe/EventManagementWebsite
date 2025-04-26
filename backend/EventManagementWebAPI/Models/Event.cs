@@ -10,7 +10,7 @@ namespace EventManagementWebAPI.Models
     {
         [BsonId]
         [BsonElement("EventId"), BsonRepresentation(BsonType.ObjectId)]
-        public ObjectId EventId { get; set; }
+        public ObjectId EventId { get; set; } = ObjectId.GenerateNewId();
 
         [Required(ErrorMessage = "Event must have a name")]
         [BsonElement("EventName"), BsonRepresentation(BsonType.String)]
