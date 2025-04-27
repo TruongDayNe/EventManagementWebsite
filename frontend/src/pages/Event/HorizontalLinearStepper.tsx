@@ -1,10 +1,13 @@
 import * as React from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
 import Stepper from "@mui/material/Stepper";
 import Step from "@mui/material/Step";
 import StepLabel from "@mui/material/StepLabel";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
+import CircularProgress from "@mui/material/CircularProgress"; // Import for loading indicator
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import Calendar from "../Calendar";
@@ -14,30 +17,42 @@ import Label from "../../components/form/Label";
 import Select from "../../components/form/Select";
 import Input from "../../components/form/input/InputField";
 import TextArea from "../../components/form/input/TextArea";
-import { useState, useEffect } from "react";
 import MapComponent from "../../components/MapComponent";
 import { LatLng } from "leaflet";
 import TitlebarImageList from "../UiElements/TitlebarImageList";
 import Grid from "@mui/material/Grid";
 import axiosInstance from "../../api/axiosInstance";
+import { useAuth } from "../../authContext/useAuth";
 
 const steps = ["Add event details", "Preview", "Set date and time"];
 
+interface Category {
+  categoryId: string;
+  categoryName: string;
+}
+
 export default function HorizontalLinearStepper() {
-  const [activeStep, setActiveStep] = React.useState(0);
-  const [skipped, setSkipped] = React.useState(new Set<number>());
+  const navigate = useNavigate();
+  const [activeStep, setActiveStep] = useState(0);
+  const [skipped, setSkipped] = useState(new Set<number>());
   const [eventName, setEventName] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
+  const [categoryId, setCategoryId] = useState(""); // Changed variable name to categoryId
   const [address, setAddress] = useState("");
   const [latlng, setLatLng] = useState<LatLng | null>(null);
   const [responseMessage, setResponseMessage] = useState<string | string[]>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [eventDateTime, setEventDateTime] = useState<{
+    startDate: string;
+    endDate: string;
     startTime: string;
     endTime: string;
-    startCheckin: string;
-    endCheckin: string;
   } | null>(null);
+  const [categories, setCategories] = useState<{ label: string; value: string }[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
+
+  const { user } = useAuth();
 
   const isStepOptional = (step: number) => {
     return step === 1;
@@ -77,82 +92,98 @@ export default function HorizontalLinearStepper() {
     setActiveStep(0);
     setEventName("");
     setDescription("");
-    setCategory("");
+    setCategoryId(""); // Updated to use categoryId
     setAddress("");
     setLatLng(null);
     setResponseMessage("");
     setEventDateTime(null);
   };
 
-  // Categories section
-  interface Category {
-    categoryName: string;
-  }
-
-  const getCategories = async (): Promise<{ label: string; value: string }[]> => {
+  const fetchCategories = async () => {
+    setLoadingCategories(true);
+    setCategoryError(null);
     try {
-      const { data } = await axiosInstance.get<Category[]>("/api/Category");
-      const options = data.map((item) => ({
+      const response = await axiosInstance.get<Category[]>("/api/Categories");
+      const formattedCategories = response.data.map((item) => ({
         label: item.categoryName,
-        value: item.categoryName,
+        value: item.categoryId, // Use the category ID as the value
       }));
-      return options;
+      console.log("Fetched categories:", response.data);
+      setCategories(formattedCategories);
     } catch (error) {
       console.error("Failed to fetch categories:", error);
-      return [];
+      setCategoryError("Failed to load categories. Please try again.");
+      setCategories([]);
+    } finally {
+      setLoadingCategories(false);
     }
   };
 
-  const [options, setOptions] = useState<{ label: string; value: string }[]>([]);
-
   useEffect(() => {
-    getCategories().then((fetchedOptions) => {
-      setOptions(fetchedOptions);
-    });
+    fetchCategories();
   }, []);
 
   const handleSelectChange = (value: string) => {
-    setCategory(value);
+    console.log("Selected category ID:", value);
+    setCategoryId(value); // Set the category ID directly
   };
 
-  const handleEventSubmit = (eventData: {
+  // Store event date/time data temporarily without submitting
+  const handleEventDateTimeSelect = (eventData: {
+    startDate: string;
+    endDate: string;
     startTime: string;
     endTime: string;
-    startCheckin: string;
-    endCheckin: string;
   }) => {
     setEventDateTime(eventData);
-    // Automatically proceed to the next step after selecting date and time
-    handleNext();
   };
 
+  // Separated submit function
   const handleSubmit = async () => {
-    if (!eventDateTime) {
-      setResponseMessage(["Please set the event date and time."]);
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setResponseMessage("");
+    
+    if (!user) {
+      setResponseMessage(["You must be logged in to create an event."]);
+      setIsSubmitting(false);
       return;
     }
+
+    if (!eventDateTime) {
+      setResponseMessage(["Please set the event date and time."]);
+      setIsSubmitting(false);
+      return;
+    }
+
     const formData = {
-      eventName: eventName,
-      categoryId: category,
-      status: "string", // Placeholder as per API
-      description,
-      address,
-      hostId: "string", // Placeholder as per API
-      startTime: eventDateTime.startTime,
-      endTime: eventDateTime.endTime,
-      startCheckin: eventDateTime.startCheckin,
-      endCheckin: eventDateTime.endCheckin,
+      eventName,
+      categoryId: categoryId, // Using categoryId directly (the ID value)
+      description: description,
+      address: address,
+      hostId: user.id,
+      startTime: eventDateTime.startDate,
+      endTime: eventDateTime.endDate,
+      startCheckin: eventDateTime.startTime,
+      endCheckin: eventDateTime.endTime,
+      latitude: latlng?.lat || null,
+      longitude: latlng?.lng || null,
     };
 
     try {
+      console.log("Form data:", formData);
       const response = await axiosInstance.post("/api/Events/Create", formData);
       setResponseMessage(response.data.message || "Event created successfully!");
+      
+      // Redirect to calendar page on success
+      navigate('/calendar');
+      
     } catch (error: any) {
-      if (error.response && error.response.data) {
-        setResponseMessage(error.response.data.errors || ["An error occurred while creating the event."]);
-      } else {
-        setResponseMessage(["An unexpected error occurred."]);
-      }
+      const errorMessages =
+        error.response?.data?.errors ||
+        [error.response?.data?.message || "An error occurred while creating the event."];
+      setResponseMessage(errorMessages);
+      setIsSubmitting(false);
     }
   };
 
@@ -185,11 +216,17 @@ export default function HorizontalLinearStepper() {
               <div>
                 <Label>Event Category</Label>
                 <Select
-                  options={options}
-                  placeholder="Select Category"
+                  options={categories}
+                  placeholder={loadingCategories ? "Loading categories..." : "Select Category"}
                   onChange={handleSelectChange}
+                  defaultValue={categoryId} // Updated to use categoryId
                   className="dark:bg-dark-900"
                 />
+                {categoryError && (
+                  <Typography color="error" variant="caption">
+                    {categoryError}
+                  </Typography>
+                )}
               </div>
               <div>
                 <Label htmlFor="inputAddress">Address</Label>
@@ -231,12 +268,49 @@ export default function HorizontalLinearStepper() {
             <Typography variant="h6" gutterBottom>
               Set event date and time
             </Typography>
-            <Calendar onEventSubmit={handleEventSubmit} />
+            <Calendar onEventSubmit={handleEventDateTimeSelect} />
+            {eventDateTime && (
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
+                <Typography variant="body1" color="success.contrastText">
+                  Date and time selected successfully!
+                </Typography>
+                <Typography variant="body2" color="success.contrastText">
+                  Start: {eventDateTime.startDate} at {eventDateTime.startTime}
+                </Typography>
+                <Typography variant="body2" color="success.contrastText">
+                  End: {eventDateTime.endDate} at {eventDateTime.endTime}
+                </Typography>
+              </Box>
+            )}
           </div>
         );
       default:
         return <div>Unknown step</div>;
     }
+  };
+
+  // Check if the user has completed all required steps
+  const canFinish = activeStep === steps.length - 1 && eventDateTime !== null;
+
+  // Show error messages
+  const renderErrorMessages = () => {
+    if (!responseMessage) return null;
+    
+    return (
+      <Box sx={{ mt: 2, mb: 1 }}>
+        {Array.isArray(responseMessage) ? (
+          responseMessage.map((msg, index) => (
+            <Typography key={index} color="error" variant="body2">
+              {msg}
+            </Typography>
+          ))
+        ) : (
+          <Typography color="success.main" variant="body2">
+            {responseMessage}
+          </Typography>
+        )}
+      </Box>
+    );
   };
 
   return (
@@ -268,17 +342,7 @@ export default function HorizontalLinearStepper() {
         </Stepper>
         {activeStep === steps.length ? (
           <React.Fragment>
-            <Typography sx={{ mt: 2, mb: 1 }}>
-              {Array.isArray(responseMessage) ? (
-                responseMessage.map((msg, index) => (
-                  <div key={index} style={{ color: "red" }}>
-                    {msg}
-                  </div>
-                ))
-              ) : (
-                <div style={{ color: "green" }}>{responseMessage}</div>
-              )}
-            </Typography>
+            {renderErrorMessages()}
             <Box sx={{ display: "flex", flexDirection: "row", pt: 2 }}>
               <Box sx={{ flex: "1 1 auto" }} />
               <Button onClick={handleReset}>Reset</Button>
@@ -287,6 +351,7 @@ export default function HorizontalLinearStepper() {
         ) : (
           <React.Fragment>
             <Typography sx={{ mt: 2, mb: 1 }}>Step {activeStep + 1}</Typography>
+            {renderErrorMessages()}
             <Box sx={{ mt: 2, mb: 1 }}>{getStepContent(activeStep)}</Box>
             <Box sx={{ display: "flex", flexDirection: "row", pt: 2 }}>
               <Button
@@ -303,9 +368,22 @@ export default function HorizontalLinearStepper() {
                   Skip
                 </Button>
               )}
-              <Button onClick={activeStep === steps.length - 1 ? handleSubmit : handleNext}>
-                {activeStep === steps.length - 1 ? "Finish" : "Next"}
-              </Button>
+              
+              {activeStep === steps.length - 1 ? (
+                <Button 
+                  variant="contained"
+                  color="primary"
+                  onClick={handleSubmit}
+                  disabled={!canFinish || isSubmitting}
+                  startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : null}
+                >
+                  {isSubmitting ? "Creating Event..." : "Finish"}
+                </Button>
+              ) : (
+                <Button onClick={handleNext}>
+                  Next
+                </Button>
+              )}
             </Box>
           </React.Fragment>
         )}

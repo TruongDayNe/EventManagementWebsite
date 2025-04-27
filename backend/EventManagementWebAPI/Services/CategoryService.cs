@@ -19,7 +19,7 @@ namespace EventManagementWebAPI.Services
         }
         public Category GetCategoryById(ObjectId id)
         {
-            return _categories.Find(c => c.CategoryId == id).FirstOrDefault();
+            return _categories.Find(c => new ObjectId(c.CategoryId) == id).FirstOrDefault();
         }
 
         public async Task<bool> CreateCategoryAsync(Category category)

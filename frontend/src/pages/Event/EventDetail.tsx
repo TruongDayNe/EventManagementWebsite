@@ -51,10 +51,9 @@ const similarEvents = [
     date: 'December 20, 2024',
     location: 'Central Park, New York',
     category: 'Festival',
-    attendees: 1000,
     organizerInitial: 'W',
     status: 'upcoming' as const,
-    imageSize: '500/300',
+    thumbnail: '/images/event-thumbnail.jpg',
   },
   {
     id: 2,
@@ -63,10 +62,9 @@ const similarEvents = [
     date: 'December 31, 2024',
     location: 'Grand Plaza Hotel',
     category: 'Gala',
-    attendees: 500,
     organizerInitial: 'N',
     status: 'upcoming' as const,
-    imageSize: '500/300',
+    thumbnail: '/images/event-thumbnail.jpg',
   },
   {
     id: 3,
@@ -75,10 +73,9 @@ const similarEvents = [
     date: 'December 15-30, 2024',
     location: 'Botanical Gardens',
     category: 'Entertainment',
-    attendees: 800,
     organizerInitial: 'H',
     status: 'upcoming' as const,
-    imageSize: '500/300',
+    thumbnail: '/images/event-thumbnail.jpg',
   },
 ];
 

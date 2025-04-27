@@ -54,10 +54,9 @@ const events = [
     date: 'March 15, 2024',
     location: 'San Francisco, CA',
     category: 'Technology',
-    attendees: 1500,
     organizerInitial: 'T',
     status: 'upcoming' as const,
-    imageSize: '500/300',
+    thumbnail: '/images/event-thumbnail.jpg',
   },
   {
     id: 2,
@@ -66,10 +65,9 @@ const events = [
     date: 'April 20, 2024',
     location: 'Austin, TX',
     category: 'Music',
-    attendees: 5000,
     organizerInitial: 'M',
     status: 'upcoming' as const,
-    imageSize: '600/400',
+    thumbnail: '/images/event-thumbnail.jpg',
   },
   {
     id: 3,
@@ -78,10 +76,9 @@ const events = [
     date: 'May 10, 2024',
     location: 'New York, NY',
     category: 'Food',
-    attendees: 2000,
     organizerInitial: 'F',
     status: 'upcoming' as const,
-    imageSize: '450/250',
+    thumbnail: '/images/event-thumbnail.jpg',
   },
   {
     id: 4,
@@ -90,10 +87,9 @@ const events = [
     date: 'June 1, 2024',
     location: 'Chicago, IL',
     category: 'Art',
-    attendees: 800,
     organizerInitial: 'A',
     status: 'upcoming' as const,
-    imageSize: '500/300',
+    thumbnail: '/images/event-thumbnail.jpg',
   },
 ];
 
@@ -245,11 +241,10 @@ const LandingPage: React.FC = () => {
                 date={event.date}
                 description={event.description}
                 location={event.location}
-                attendees={event.attendees}
                 category={event.category}
                 organizerInitial={event.organizerInitial}
                 status={event.status}
-                imageSize={event.imageSize}
+                thumbnail={event.thumbnail}
               />
             </Box>
           ))}

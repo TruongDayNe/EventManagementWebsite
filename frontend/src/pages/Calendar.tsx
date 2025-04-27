@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"; // Add useEffect to imports
+import { useState, useRef, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -22,10 +22,10 @@ interface CalendarEvent extends EventInput {
 
 interface CalendarProps {
   onEventSubmit?: (eventData: {
-    startTime: string;
-    endTime: string;
-    startCheckin: string;
-    endCheckin: string;
+    startDate: string;    // Maps to backend StartTime
+    endDate: string;      // Maps to backend EndTime
+    startTime: string;    // Maps to backend StartCheckin
+    endTime: string;      // Maps to backend EndCheckin
   }) => void;
 }
 
@@ -49,7 +49,7 @@ const Calendar: React.FC<CalendarProps> = ({ onEventSubmit }) => {
     if (!loading && !error) {
       setEvents(fetchedEvents);
     }
-  }, [fetchedEvents, loading, error]); // Corrected to useEffect
+  }, [fetchedEvents, loading, error]);
 
   const formatDateToDDMMYYYY = (date: Date): string => {
     const day = String(date.getDate()).padStart(2, "0");
@@ -126,37 +126,52 @@ const Calendar: React.FC<CalendarProps> = ({ onEventSubmit }) => {
     setValidationError("");
     const startISO = parseDDMMYYYYToISO(eventStartDate);
     const endISO = parseDDMMYYYYToISO(eventEndDate || eventStartDate);
+    
     if (!startISO) {
       setValidationError("Invalid start date format");
       return false;
     }
+    
     if (isMultiDay === "multiDay" && !endISO) {
       setValidationError("Invalid end date format");
       return false;
     }
-    const startDate = new Date(`${startISO}T${eventStartTime || "00:00"}`);
-    let endDate;
+    
+    // Create datetime objects for validation
+    const startDateTime = new Date(`${startISO}T${eventStartTime || "00:00"}`);
+    let endDateTime;
+    
     if (isMultiDay === "multiDay") {
-      endDate = new Date(`${endISO}T${eventEndTime || eventStartTime || "00:00"}`);
+      // For multi-day events
+      endDateTime = new Date(`${endISO}T${eventEndTime || eventStartTime || "00:00"}`);
+      
+      // Compare dates (ignoring time) for multi-day events
       const startDateOnly = new Date(startISO);
       const endDateOnly = new Date(endISO);
+      
       if (endDateOnly < startDateOnly) {
         setValidationError("End date must be on or after start date");
         return false;
       }
     } else {
-      endDate = eventEndTime
+      // For single-day events
+      endDateTime = eventEndTime
         ? new Date(`${startISO}T${eventEndTime}`)
-        : new Date(startDate.getTime() + 3600000);
+        : new Date(startDateTime.getTime() + 3600000);
+      
+      // For single-day events, dates must be the same
       if (startISO !== endISO) {
         setValidationError("Single-day events must have the same start and end date");
         return false;
       }
-      if (eventEndTime && eventEndTime <= eventStartTime) {
+      
+      // For single-day events, end time must be after start time
+      if (eventEndTime && eventStartTime && eventEndTime <= eventStartTime) {
         setValidationError("End time must be after start time for single-day events");
         return false;
       }
     }
+    
     return true;
   };
 
@@ -164,37 +179,57 @@ const Calendar: React.FC<CalendarProps> = ({ onEventSubmit }) => {
     if (!validateDatesAndTimes()) {
       return;
     }
+    
     const startISO = parseDDMMYYYYToISO(eventStartDate);
     const endISO = parseDDMMYYYYToISO(eventEndDate || eventStartDate);
+    
+    // Create base date objects
     const startDateTime = new Date(`${startISO}T${eventStartTime || "00:00"}`);
     let endDateTime;
+    
     if (isMultiDay === "multiDay") {
       endDateTime = new Date(`${endISO}T${eventEndTime || eventStartTime || "00:00"}`);
-      endDateTime.setDate(endDateTime.getDate() + 1);
     } else {
       endDateTime = eventEndTime
         ? new Date(`${startISO}T${eventEndTime}`)
         : new Date(startDateTime.getTime() + 3600000);
     }
+    
+    // Create the four required datetime fields in ISO format
+    // startDate: start date at 00:00
+    const startDate = new Date(startDateTime);
+    startDate.setHours(0, 0, 0, 0);
+    
+    // endDate: end date at 23:59:59
+    const endDate = new Date(isMultiDay === "multiDay" ? endDateTime : startDateTime);
+    endDate.setHours(23, 59, 59, 999);
+    
+    // startTime: start date with actual check-in time
+    const startTime = new Date(startDateTime);
+    
+    // endTime: end date with actual check-out time
+    const endTime = new Date(endDateTime);
+    
     if (onEventSubmit) {
       const eventData = {
-        startTime: startDateTime.toISOString(),
-        endTime: isMultiDay === "multiDay" ? endDateTime.toISOString() : startDateTime.toISOString(),
-        startCheckin: startDateTime.toISOString(),
-        endCheckin: endDateTime.toISOString(),
+        startDate: startDate.toISOString(), // StartTime in backend
+        endDate: endDate.toISOString(),     // EndTime in backend
+        startTime: startTime.toISOString(), // StartCheckin in backend
+        endTime: endTime.toISOString(),     // EndCheckin in backend
       };
       onEventSubmit(eventData);
       closeModal();
       resetModalFields();
     } else {
+      // Calendar display and state update logic
       if (selectedEvent) {
         setEvents((prevEvents) =>
           prevEvents.map((event) =>
             event.id === selectedEvent.id
               ? {
                   ...event,
-                  start: startDateTime.toISOString(),
-                  end: endDateTime.toISOString(),
+                  start: startTime.toISOString(),
+                  end: endTime.toISOString(),
                   extendedProps: {
                     calendar: event.extendedProps.calendar,
                     isMultiDay: isMultiDay === "multiDay",
@@ -207,8 +242,8 @@ const Calendar: React.FC<CalendarProps> = ({ onEventSubmit }) => {
         const newEvent: CalendarEvent = {
           id: Date.now().toString(),
           title: "New Event",
-          start: startDateTime.toISOString(),
-          end: endDateTime.toISOString(),
+          start: startTime.toISOString(),
+          end: endTime.toISOString(),
           allDay: !eventStartTime && !eventEndTime,
           extendedProps: {
             calendar: "Primary",

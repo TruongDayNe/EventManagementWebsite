@@ -1,7 +1,7 @@
-﻿using MongoDB.EntityFrameworkCore;
-using MongoDB.Bson;
-using System.ComponentModel.DataAnnotations;
+﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 namespace EventManagementWebAPI.Models
 {
@@ -9,11 +9,10 @@ namespace EventManagementWebAPI.Models
     public class Category
     {
         [BsonId]
-        [BsonElement("CategoryId"), BsonRepresentation(BsonType.ObjectId)]
-        public ObjectId CategoryId { get; set; }
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string CategoryId { get; set; }  = ObjectId.GenerateNewId().ToString();
 
         [BsonElement("CategoryName")]
         public string CategoryName { get; set; } = string.Empty;
-
     }
 }

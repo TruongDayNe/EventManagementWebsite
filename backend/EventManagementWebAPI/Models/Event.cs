@@ -20,7 +20,7 @@ namespace EventManagementWebAPI.Models
         public string CategoryId { get; set; } = string.Empty;
 
         [BsonElement("StatusId"), BsonRepresentation(BsonType.ObjectId)]
-        public string StatusId { get; set; } = string.Empty;
+        public string StatusId { get; set; } = "680cf3c6a2614b1c13daac2d"; // upcoming
 
         [BsonElement("Description"), BsonRepresentation(BsonType.String)]
         public string Description { get; set; } = string.Empty;
@@ -34,7 +34,6 @@ namespace EventManagementWebAPI.Models
 
         [BsonElement("Longitude"), BsonRepresentation(BsonType.Double)]
         public double Longitude = 16.0748;
-
 
         [BsonElement("HostId"), BsonRepresentation(BsonType.String)]
         public string HostId { get; set; } = string.Empty;
