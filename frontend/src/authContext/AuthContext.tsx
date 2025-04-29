@@ -1,11 +1,5 @@
 import { createContext, useState, useEffect, ReactNode } from 'react';
-import axios from 'axios';
-
-// Base URL for the API
-const API_BASE_URL = 'http://localhost:5121';
-
-// Set default base URL for axios
-axios.defaults.baseURL = API_BASE_URL;
+import instance from '../api/axiosInstance'; // Adjust the path based on your project structure
 
 interface User {
   id: string;
@@ -82,7 +76,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         id: decoded.sub || decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] || '',
         email: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || '',
         userName: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || '',
-        name: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'] || '',
+        name: decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/givenname'] || '',
         role: decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || undefined,
         ...decoded, // thêm tất cả các field khác vào
       };
@@ -128,7 +122,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             isAuthenticated: true,
           }));
 
-          await axios.get('/api/Auth/ValidateToken', {
+          await instance.get('/api/Auth/ValidateToken', {
             headers: { Authorization: `Bearer ${storedToken}` },
           });
         } catch (error) {
@@ -151,7 +145,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string): Promise<void> => {
     try {
-      const response = await axios.post('/api/Auth/Login', { email, password });
+      const response = await instance.post('/api/Auth/Login', { email, password });
       const { token: newToken, isAuthenticated } = response.data;
 
       if (!isAuthenticated) {
@@ -185,7 +179,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (data: RegisterData): Promise<void> => {
     try {
-      const response = await axios.post('/api/Auth/Register', {
+      const response = await instance.post('/api/Auth/Register', {
         name: data.username,
         username: data.username,
         email: data.email,
@@ -225,7 +219,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const googleLogin = async (googleData: { email: string; name: string; id: string }): Promise<void> => {
     try {
       try {
-        const response = await axios.post('/api/Auth/Login', {
+        const response = await instance.post('/api/Auth/Login', {
           email: googleData.email,
           password: googleData.id,
         });
@@ -257,7 +251,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('User not found, attempting to register:', loginError.message);
       }
 
-      const response = await axios.post('/api/Auth/Register', {
+      const response = await instance.post('/api/Auth/Register', {
         name: googleData.name,
         username: googleData.name.replace(/\s+/g, '').toLowerCase(),
         email: googleData.email,

@@ -11,7 +11,6 @@ import CircularProgress from "@mui/material/CircularProgress"; // Import for loa
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import Calendar from "../Calendar";
-import DropzoneComponent from "../../components/form/form-elements/DropZone";
 import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
 import Select from "../../components/form/Select";
@@ -19,8 +18,7 @@ import Input from "../../components/form/input/InputField";
 import TextArea from "../../components/form/input/TextArea";
 import MapComponent from "../../components/MapComponent";
 import { LatLng } from "leaflet";
-import TitlebarImageList from "../UiElements/TitlebarImageList";
-import Grid from "@mui/material/Grid";
+import ImageUploadManager from "../../components/form/form-elements/ImageUploadManager";
 import axiosInstance from "../../api/axiosInstance";
 import { useAuth } from "../../authContext/useAuth";
 
@@ -51,6 +49,12 @@ export default function HorizontalLinearStepper() {
   const [categories, setCategories] = useState<{ label: string; value: string }[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [categoryError, setCategoryError] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+
+  interface UploadedFile {
+    key: string;
+    isThumbnail: boolean;
+  }
 
   const { user } = useAuth();
 
@@ -97,6 +101,7 @@ export default function HorizontalLinearStepper() {
     setLatLng(null);
     setResponseMessage("");
     setEventDateTime(null);
+    setUploadedFiles([]);
   };
 
   const fetchCategories = async () => {
@@ -142,23 +147,23 @@ export default function HorizontalLinearStepper() {
   const handleSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-    setResponseMessage("");
-    
+    setResponseMessage('');
+  
     if (!user) {
-      setResponseMessage(["You must be logged in to create an event."]);
+      setResponseMessage(['You must be logged in to create an event.']);
       setIsSubmitting(false);
       return;
     }
-
+  
     if (!eventDateTime) {
-      setResponseMessage(["Please set the event date and time."]);
+      setResponseMessage(['Please set the event date and time.']);
       setIsSubmitting(false);
       return;
     }
-
+  
     const formData = {
-      eventName,
-      categoryId: categoryId, // Using categoryId directly (the ID value)
+      eventName: eventName,
+      categoryId: categoryId,
       description: description,
       address: address,
       hostId: user.id,
@@ -169,22 +174,35 @@ export default function HorizontalLinearStepper() {
       latitude: latlng?.lat || null,
       longitude: latlng?.lng || null,
     };
-
+  
     try {
-      console.log("Form data:", formData);
-      const response = await axiosInstance.post("/api/Events/Create", formData);
-      setResponseMessage(response.data.message || "Event created successfully!");
-      
+      console.log('Form data:', formData);
+      const response = await axiosInstance.post('/api/Events/Create', formData);
+      setResponseMessage(response.data.message || 'Event created successfully!');
+      console.log("Uploaded keys in stepper:", uploadedFiles);
+
+      for (var file in uploadedFiles) 
+      {
+        const uploadData = {
+          eventId: response.data.eventId,
+          fileKey: uploadedFiles[file].key,
+          isThumbnail: uploadedFiles[file].isThumbnail,
+        };
+        await axiosInstance.post('/api/EventImages', uploadData);
+      }
       // Redirect to calendar page on success
       navigate('/calendar');
-      
     } catch (error: any) {
       const errorMessages =
         error.response?.data?.errors ||
-        [error.response?.data?.message || "An error occurred while creating the event."];
+        [error.response?.data?.message || 'An error occurred while creating the event.'];
       setResponseMessage(errorMessages);
       setIsSubmitting(false);
     }
+  };
+
+  const handleUploadSuccess = (files: UploadedFile[]) => {
+    setUploadedFiles(files);
   };
 
   const getStepContent = (step: number) => {
@@ -219,7 +237,7 @@ export default function HorizontalLinearStepper() {
                   options={categories}
                   placeholder={loadingCategories ? "Loading categories..." : "Select Category"}
                   onChange={handleSelectChange}
-                  defaultValue={categoryId} // Updated to use categoryId
+                  defaultValue={categoryId}
                   className="dark:bg-dark-900"
                 />
                 {categoryError && (
@@ -249,14 +267,9 @@ export default function HorizontalLinearStepper() {
                   </div>
                 )}
               </div>
-              <Grid container spacing={3}>
-                <Grid size={{ xs: 12, sm: 6, md: 6 }}>
-                  <DropzoneComponent />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 6 }}>
-                  <TitlebarImageList />
-                </Grid>
-              </Grid>
+              <div>
+                <ImageUploadManager onUploadSuccess={handleUploadSuccess}/>
+              </div>
             </ComponentCard>
           </div>
         );
@@ -370,19 +383,19 @@ export default function HorizontalLinearStepper() {
               )}
               
               {activeStep === steps.length - 1 ? (
-                <Button 
+                <Button
                   variant="contained"
                   color="primary"
-                  onClick={handleSubmit}
+                  onClick={async () => { 
+                    await handleSubmit(); // Then submit the form
+                  }}
                   disabled={!canFinish || isSubmitting}
                   startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : null}
                 >
-                  {isSubmitting ? "Creating Event..." : "Finish"}
+                  {isSubmitting ? 'Creating Event...' : 'Finish'}
                 </Button>
               ) : (
-                <Button onClick={handleNext}>
-                  Next
-                </Button>
+                <Button onClick={handleNext}>Next</Button>
               )}
             </Box>
           </React.Fragment>

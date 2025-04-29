@@ -118,7 +118,7 @@ const AppHeader: React.FC = () => {
             </svg>
           </button>
 
-          <div className="hidden lg:block">
+          {/* <div className="hidden lg:block">
             <form>
               <div className="relative">
                 <span className="absolute -translate-y-1/2 pointer-events-none left-4 top-1/2">
@@ -152,7 +152,7 @@ const AppHeader: React.FC = () => {
 
               </div>
             </form>            
-          </div>
+          </div> */}
           <Link to="/create-event">
             <div className="hidden lg:block flex flex-wrap gap-4 sm:items-center sm:justify-center">           
               <button>

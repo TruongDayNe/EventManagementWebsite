@@ -69,6 +69,10 @@ export default function App() {
               <Route path="/event-kanban-board" element={<KanbanBoard />} />
               <Route path="/events/:id" element={<EventDetail />} />
             </Route>
+
+            {/* Event creation stepper */}
+            <Route path="/create-event" element={<HorizontalLinearStepper />} />
+          
           </Route>
 
           {/* Public Routes (No nav and header layout) */}
@@ -78,8 +82,6 @@ export default function App() {
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
 
-          {/* Event creation stepper */}
-          <Route path="/create-event" element={<HorizontalLinearStepper />} />
 
           {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />

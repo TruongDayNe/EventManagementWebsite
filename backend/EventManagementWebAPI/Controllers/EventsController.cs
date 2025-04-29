@@ -46,7 +46,7 @@ namespace EventManagementWebAPI.Controllers
             var result = await _eventService.CreateEventAsync(newEvent);
             if (!result.Succeeded)
                 return BadRequest(result.Errors);
-            return Ok("Sự kiện đã được tạo thành công.");
+            return Ok(newEvent.EventId.ToString());
         }
 
         [HttpDelete("{id}")]

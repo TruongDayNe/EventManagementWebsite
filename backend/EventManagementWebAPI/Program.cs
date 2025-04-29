@@ -5,6 +5,12 @@ using EventManagementWebAPI.Services;
 using EventManagementWebAPI.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Amazon.S3;
+using Microsoft.Extensions.Options;
+using DotNetEnv;
+using Amazon.Runtime;
+using Amazon.SecurityToken.Model;
+using Amazon.SecurityToken;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,7 +49,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IStatusService, StatusService>();
-
+builder.Services.AddScoped<IEventImageService, EventImageService>();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -61,19 +67,36 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.Configure<S3Settings>(builder.Configuration.GetSection("S3Settings"));
+
+builder.Services.AddSingleton<IAmazonS3>(sp =>
+{
+    var s3Settings = sp.GetRequiredService<IOptions<S3Settings>>().Value;
+
+    var config = new AmazonS3Config
+    {
+
+        RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(s3Settings.Region)
+    };
+    return new AmazonS3Client(config);
+});
+
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
+// if (app.Environment.IsDevelopment())
+// {
+//     app.UseSwagger();
+//     app.UseSwaggerUI();
+// }
+app.UseSwagger();
+app.UseSwaggerUI();
 app.UseCors("CorsPolicy");
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+//app.MapGet("/", () => "EventManagementWebAPI is running!");
 
 using (var scope = app.Services.CreateScope())
 {
