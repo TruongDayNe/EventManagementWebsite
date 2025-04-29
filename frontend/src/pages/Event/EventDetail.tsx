@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react'; // Add useState for Snackbar control
 import {
   Box,
   Container,
@@ -8,140 +8,182 @@ import {
   Button,
   Chip,
   Avatar,
-  IconButton,
+  Snackbar, // Import Snackbar
+  Alert,   // Import Alert for styled messages
 } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import ShareIcon from '@mui/icons-material/Share';
-// import FavoriteIcon from '@mui/icons-material/Favorite';
 import { LatLng } from 'leaflet';
 import SimpleEventCard from './SimpleEventCard';
 import MapComponent from '../../components/MapComponent';
-
-// Sample event data
-const eventDetail = {
-  id: 1,
-  title: 'Sound of Christmas',
-  date: 'December 24, 2024 | 7:00 PM - 10:00 PM',
-  location: 'Christmas Concert Hall, 123 Festival Street, New York',
-  coordinates: new LatLng(16.0748, 108.152),
-  description: `Join us for a magical evening of Christmas music and celebration. Experience the joy of the season with traditional carols and contemporary holiday favorites performed by our renowned orchestra.
-
-This year's Sound of Christmas concert promises to be an unforgettable celebration featuring:
-- Live orchestra performance
-- Special guest vocalists
-- Interactive carol singing
-- Festive atmosphere and decorations
-
-Don't miss this opportunity to create wonderful Christmas memories with your loved ones.`,
-  organizer: {
-    name: 'High Street Living',
-    avatar: '/images/brand/organizer-logo.png',
-  },
-  tags: ['Christmas', 'Music', 'Concert', 'Holiday', 'Family'],
-  imageUrl: '/images/event-banner.jpg',
-};
-
-// Similar events data
-const similarEvents = [
-  {
-    id: 1,
-    title: 'Winter Wonderland Festival',
-    description: 'A magical winter festival with ice skating, holiday markets, and live performances.',
-    date: 'December 20, 2024',
-    location: 'Central Park, New York',
-    category: 'Festival',
-    organizerInitial: 'W',
-    status: 'upcoming' as const,
-    thumbnail: '/images/event-thumbnail.jpg',
-  },
-  {
-    id: 2,
-    title: 'New Year\'s Eve Gala',
-    description: 'Ring in the new year with an elegant evening of dining, dancing, and celebration.',
-    date: 'December 31, 2024',
-    location: 'Grand Plaza Hotel',
-    category: 'Gala',
-    organizerInitial: 'N',
-    status: 'upcoming' as const,
-    thumbnail: '/images/event-thumbnail.jpg',
-  },
-  {
-    id: 3,
-    title: 'Holiday Light Show',
-    description: 'Experience the magic of thousands of twinkling lights synchronized to holiday music.',
-    date: 'December 15-30, 2024',
-    location: 'Botanical Gardens',
-    category: 'Entertainment',
-    organizerInitial: 'H',
-    status: 'upcoming' as const,
-    thumbnail: '/images/event-thumbnail.jpg',
-  },
-];
+import { useEventDetails } from '../../hooks/useEventDetails';
+import { useParams } from 'react-router-dom';
+import Loader from '../../components/Loader';
+import { useAuth } from  '../../authContext/useAuth'; 
+import axiosInstance from '../../api/axiosInstance'; // Adjust the import path as necessary
 
 const EventDetail: React.FC = () => {
+  const { eventId } = useParams<{ eventId: string }>();
 
-  const handleShare = React.useCallback(() => {
-    console.log('Share clicked');
-  }, []);
+  const { events, loading, error } = useEventDetails();
+  const auth = useAuth();
 
-  // const handleFavorite = React.useCallback(() => {
-  //   console.log('Favorite clicked');
-  // }, []);
+  const userId = auth.user?.id;
 
-  const handleRegister = React.useCallback(() => {
-    console.log('Register clicked');
-  }, []);
+  // State for Snackbar
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+
+  const handleRegister = React.useCallback(async () => {
+    if (!eventId || !userId) {
+      setSnackbarMessage('Missing eventId or userId');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    try {
+      console.log('Sending registration request with:', { eventId, userId });
+
+      // Assuming you have an apiRequest method in useAuth as discussed previously
+      await axiosInstance.post('/api/Attendances', {
+        eventId, userId
+      });
+
+      // Show success message
+      setSnackbarMessage('Successfully registered for the event!');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+    } catch (error) {
+      // Show error message
+      setSnackbarMessage('Error registering for the event. Please try again.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      console.error('Error registering for the event:', error);
+    }
+  }, [eventId, userId, auth]);
+
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
 
   const handleLatLngChange = React.useCallback((latlng: LatLng) => {
     console.log('Map clicked at:', latlng);
   }, []);
 
+  const eventDetail = eventId ? events.find((event) => event.eventId === eventId) : undefined;
+  const similarEvents = eventId
+    ? events.filter((event) => event.eventId !== eventId).slice(0, 3)
+    : [];
+
+  const getThumbnailUrl = (event: any): string => {
+    const thumbnailObj = event.images.find((img: any) => img.isThumbnail);
+    if (thumbnailObj) {
+      const urlField = thumbnailObj.url;
+      if (typeof urlField === 'string') {
+        return urlField;
+      } else if (typeof urlField === 'object' && urlField.url) {
+        return urlField.url;
+      }
+    }
+    return 'https://via.placeholder.com/500x300';
+  };
+
+  const mapStatusNameToEventStatus = (statusName: string): 'upcoming' | 'inProgress' | 'completed' | 'cancelled' => {
+    switch (statusName.toLowerCase()) {
+      case 'upcoming':
+        return 'upcoming';
+      case 'in progress':
+        return 'inProgress';
+      case 'completed':
+        return 'completed';
+      case 'cancelled':
+        return 'cancelled';
+      default:
+        return 'upcoming';
+    }
+  };
+
+  if (loading) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Loader />
+      </Container>
+    );
+  }
+
+  if (error || !eventId || !eventDetail) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Typography variant="h6" color="error">
+          {error || !eventId
+            ? 'Invalid event ID.'
+            : `Event with ID ${eventId} not found.`}
+        </Typography>
+      </Container>
+    );
+  }
+
+  const formatDateTime = (startTime: string, endTime: string): string => {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const isValidStart = !isNaN(start.getTime());
+    const isValidEnd = !isNaN(end.getTime());
+    if (!isValidStart || !isValidEnd) {
+      return 'Date unavailable';
+    }
+    const date = start.toLocaleDateString();
+    const startFormatted = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const endFormatted = end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `${date} | ${startFormatted} - ${endFormatted}`;
+  };
+
+  const eventDateTime = formatDateTime(eventDetail.startTime, eventDetail.endTime);
+  const thumbnail = getThumbnailUrl(eventDetail) || '/images/event-thumbnail.jpg';
+  const coordinates = new LatLng(16.0748, 108.152);
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Event Header */}
-      <Paper
-        sx={{
-          position: 'relative',
-          mb: 4,
-          overflow: 'hidden',
-          borderRadius: 2,
-        }}
+      {/* Snackbar for announcements */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
+        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
+
+      <Paper sx={{ position: 'relative', mb: 4, overflow: 'hidden', borderRadius: 2 }}>
         <Box
           component="img"
-          src={eventDetail.imageUrl}
-          alt={eventDetail.title}
-          sx={{
-            width: '100%',
-            height: 300,
-            objectFit: 'cover',
-          }}
+          src={thumbnail}
+          alt={eventDetail.eventName}
+          sx={{ width: '100%', height: 300, objectFit: 'cover' }}
         />
-        
         <Box sx={{ p: 3 }}>
           <Grid container spacing={3}>
-            <Grid size={{xs:12, md:8}}>
+            <Grid size={{ xs: 12, md: 8 }}>
               <Typography variant="h4" component="h1" gutterBottom>
-                {eventDetail.title}
+                {eventDetail.eventName}
               </Typography>
-              
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <CalendarTodayIcon sx={{ mr: 1, color: 'text.secondary' }} />
                 <Typography variant="body1" color="text.secondary">
-                  {eventDetail.date}
+                  {eventDateTime}
                 </Typography>
               </Box>
-              
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <LocationOnIcon sx={{ mr: 1, color: 'text.secondary' }} />
                 <Typography variant="body1" color="text.secondary">
-                  {eventDetail.location}
+                  {eventDetail.address || 'Location unavailable'}
                 </Typography>
               </Box>
             </Grid>
-            
-            <Grid size={{xs:12, md:4}} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <Grid size={{ xs: 12, md: 4 }} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
               <Button
                 variant="contained"
                 size="large"
@@ -150,32 +192,21 @@ const EventDetail: React.FC = () => {
               >
                 Register Now
               </Button>
-              
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <IconButton color="primary" onClick={handleShare}>
-                  <ShareIcon />
-                </IconButton>
-                {/* <IconButton color="primary" onClick={handleFavorite}>
-                  <FavoriteIcon />
-                </IconButton> */}
-              </Box>
             </Grid>
           </Grid>
         </Box>
       </Paper>
 
       <Grid container spacing={4}>
-        {/* Event Details */}
-        <Grid size={{xs:12, md:8}}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Paper sx={{ p: 3, mb: 3 }}>
             <Typography variant="h6" gutterBottom>
               Event Description
             </Typography>
             <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
-              {eventDetail.description}
+              {eventDetail.description || 'No description available.'}
             </Typography>
           </Paper>
-
           <Paper sx={{ p: 3, mb: 3 }}>
             <Typography variant="h6" gutterBottom>
               Location
@@ -184,64 +215,79 @@ const EventDetail: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <LocationOnIcon sx={{ mr: 1, color: 'text.secondary' }} />
                 <Typography variant="body1" color="text.secondary">
-                  {eventDetail.location}
+                  {eventDetail.address || 'Location unavailable'}
                 </Typography>
               </Box>
-              <Box sx={{ width: '100%', height: '100%' }}> {/* Adjusted height */}
+              <Box sx={{ width: '100%', height: '100%' }}>
                 <MapComponent
                   onLatLngChange={handleLatLngChange}
                   canPin={false}
-                  initialPosition={eventDetail.coordinates}
+                  initialPosition={coordinates}
                 />
               </Box>
             </Box>
           </Paper>
-
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Tags
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {eventDetail.tags.map((tag) => (
-                <Chip key={tag} label={tag} />
-              ))}
+              <Chip label={eventDetail.categoryName || 'Uncategorized'} />
             </Box>
           </Paper>
         </Grid>
-
-        {/* Organizer Info */}
-        <Grid size={{xs:12, md:4}}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Paper sx={{ p: 3, mb: 3 }}>
             <Typography variant="h6" gutterBottom>
               Hosted by
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Avatar
-                src={eventDetail.organizer.avatar}
-                alt={eventDetail.organizer.name}
+                src="/images/brand/organizer-logo.png"
+                alt={eventDetail.hostName || 'Unknown Host'}
                 sx={{ width: 50, height: 50 }}
               />
               <Typography variant="subtitle1">
-                {eventDetail.organizer.name}
+                {eventDetail.hostName || 'Unknown Host'}
               </Typography>
             </Box>
           </Paper>
         </Grid>
       </Grid>
 
-      {/* Similar Events Section */}
-      <Box sx={{ mt: 6 }}>
-        <Typography variant="h5" gutterBottom>
-          Other events you may like
-        </Typography>
-        <Grid container spacing={3}>
-          {similarEvents.map((event) => (
-            <Grid size={{xs:12, sm:6, md:4}} key={event.id}>
-              <SimpleEventCard {...event} />
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
+      {similarEvents.length > 0 && (
+        <Box sx={{ mt: 6 }}>
+          <Typography variant="h5" gutterBottom>
+            Other events you may like
+          </Typography>
+          <Grid container spacing={3}>
+            {similarEvents.map((event) => {
+              const thumbnail = getThumbnailUrl(event) || '/images/event-thumbnail.jpg';
+              const organizerInitial = event.hostName?.charAt(0) || 'U';
+              const eventDate = new Date(event.startTime);
+              const formattedDate = !isNaN(eventDate.getTime())
+                ? eventDate.toLocaleDateString()
+                : 'Date unavailable';
+
+              return (
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={event.eventId}>
+                  <SimpleEventCard
+                    id={event.eventId}
+                    title={event.eventName}
+                    description={event.description || 'No description available.'}
+                    date={formattedDate}
+                    location={event.address || 'Location unavailable'}
+                    category={event.categoryName || 'Uncategorized'}
+                    organizerInitial={organizerInitial}
+                    status={mapStatusNameToEventStatus(event.statusName)}
+                    thumbnail={thumbnail}
+                  />
+                </Grid>
+              );
+            })}
+          </Grid>
+        </Box>
+      )}
     </Container>
   );
 };

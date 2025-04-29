@@ -7,6 +7,8 @@ import Paper from '@mui/material/Paper';
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import SimpleEventCard from './SimpleEventCard';
+import { useEventDetails } from '../../hooks/useEventDetails'; // Adjust the path based on your project structure
+import Loader from '../../components/Loader';
 
 // Styled components
 const KanbanColumn = styled(Paper)(({ theme }) => ({
@@ -27,99 +29,70 @@ const ColumnTitle = styled(Typography)(({ theme }) => ({
   borderRadius: theme.shape.borderRadius,
 }));
 
-type EventStatus = 'upcoming' | 'inProgress' | 'completed' | 'cancelled';
-
-// Sample event data
-const eventData: Event[] = [
-  {
-    id: 1,
-    status: 'upcoming',
-    title: 'Annual Tech Conference',
-    description: 'The largest tech conference bringing together industry leaders and innovators',
-    organizer: 'T',
-    date: 'May 20, 2025',
-    location: 'Convention Center, San Francisco',
-    category: 'Technology',
-  },
-  {
-    id: 2,
-    status: 'upcoming',
-    title: 'Summer Music Festival',
-    description: 'Three-day outdoor music festival featuring top artists from around the world',
-    organizer: 'M',
-    date: 'June 15, 2025',
-    location: 'Central Park, New York',
-    category: 'Music',
-  },
-  {
-    id: 3,
-    status: 'inProgress',
-    title: 'Startup Pitch Competition',
-    description: 'Entrepreneurs showcase their innovative ideas to potential investors',
-    organizer: 'S',
-    date: 'April 18-22, 2025',
-    location: 'Innovation Hub, Austin',
-    category: 'Business',
-  },
-  {
-    id: 4,
-    status: 'inProgress',
-    title: 'International Food Fair',
-    description: 'Culinary event featuring cuisines from over 20 countries',
-    organizer: 'F',
-    date: 'April 15-25, 2025',
-    location: 'Waterfront Plaza, Chicago',
-    category: 'Food',
-  },
-  {
-    id: 5,
-    status: 'completed',
-    title: 'Global Marketing Summit',
-    description: 'Industry professionals discussing the future of digital marketing',
-    organizer: 'M',
-    date: 'April 1-5, 2025',
-    location: 'Grand Hotel, London',
-    category: 'Marketing',
-  },
-  {
-    id: 6,
-    status: 'completed',
-    title: 'Winter Art Exhibition',
-    description: 'Showcasing contemporary art from emerging and established artists',
-    organizer: 'A',
-    date: 'March 10-30, 2025',
-    location: 'Modern Art Gallery, Paris',
-    category: 'Art',
-  },
-  {
-    id: 7,
-    status: 'cancelled',
-    title: 'Sustainable Living Expo',
-    description: 'Exploring eco-friendly products and sustainable lifestyle practices',
-    organizer: 'E',
-    date: 'Originally May 5, 2025',
-    location: 'Eco Center, Seattle',
-    category: 'Environment',
-  },
-];
-
-// Event interface
-interface Event {
-  id: number;
-  status: EventStatus;
-  title: string;
-  description: string;
-  organizer: string;
-  date: string;
-  location: string;
-  category: string;
-}
-
 export default function EventKanbanBoard() {
+  // Use the useEventDetails hook to fetch events
+  const { events, loading, error } = useEventDetails();
+
+  console.log(events);
+
+  // Map the statusName to match the expected EventStatus values in the UI
+  const mapStatusNameToEventStatus = (statusName: string): 'upcoming' | 'inProgress' | 'completed' | 'cancelled' => {
+    switch (statusName.toLowerCase()) {
+      case 'upcoming':
+        return 'upcoming';
+      case 'in progress':
+        return 'inProgress';
+      case 'completed':
+        return 'completed';
+      case 'cancelled':
+        return 'cancelled';
+      default:
+        return 'upcoming'; // Fallback to 'upcoming' if status doesn't match
+    }
+  };
+
   // Group events by status
-  const upcomingEvents = eventData.filter((event) => event.status === 'upcoming');
-  const inProgressEvents = eventData.filter((event) => event.status === 'inProgress');
-  const completedEvents = eventData.filter((event) => event.status === 'completed');
+  const upcomingEvents = events.filter((event) => mapStatusNameToEventStatus(event.statusName) === 'upcoming');
+  const inProgressEvents = events.filter((event) => mapStatusNameToEventStatus(event.statusName) === 'inProgress');
+  const completedEvents = events.filter((event) => mapStatusNameToEventStatus(event.statusName) === 'completed');
+
+  // Handle loading and error states
+  if (loading) {
+    return (
+      <Box sx={{ flexGrow: 1, p: 3 }}>
+        <Loader/>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ flexGrow: 1, p: 3 }}>
+        <Typography variant="h6" color="error">
+          {error}
+        </Typography>
+      </Box>
+    );
+  }
+
+  // Hàm lấy thumbnail chính xác theo cấu trúc object
+const getThumbnailUrl = (event: any): string => {
+  const thumbnailObj = event.images.find((img: any) => img.isThumbnail);
+  
+  // Nếu thumbnailObj tồn tại, kiểm tra kiểu dữ liệu của thumbnailObj.url
+  if (thumbnailObj) {
+    const urlField = thumbnailObj.url;
+    if (typeof urlField === 'string') {
+      return urlField;
+    } else if (typeof urlField === 'object' && urlField.url) {
+      return urlField.url;
+    }
+  }
+
+  // Nếu không có thumbnail hợp lệ
+  return 'https://via.placeholder.com/500x300';
+};
+
 
   return (
     <>
@@ -135,71 +108,82 @@ export default function EventKanbanBoard() {
 
         <Grid container spacing={3}>
           {/* Upcoming Events Column */}
-          <Grid size={{xs:12, sm:6, md:4}}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <KanbanColumn elevation={2}>
               <ColumnTitle variant="h6" sx={{ backgroundColor: blue[100], color: blue[800] }}>
                 UPCOMING ({upcomingEvents.length})
               </ColumnTitle>
-              {upcomingEvents.map((event) => (
-                <SimpleEventCard
-                  id ={event.id}
-                  key={event.id}
-                  title={event.title}
-                  date={event.date}
-                  description={event.description}
-                  location={event.location}
-                  category={event.category}
-                  organizerInitial={event.organizer}
-                  status={event.status}
-                  thumbnail='https://via.placeholder.com/500x300'
-                />
-              ))}
+              {upcomingEvents.map((event) => {
+                // Find the thumbnail image, or fallback to placeholder if none exists
+                const thumbnail = getThumbnailUrl(event);
+
+                return (
+                  <SimpleEventCard
+                    id={event.eventId} // Convert string eventId to number for compatibility
+                    key={event.eventId}
+                    title={event.eventName}
+                    date={event.startTime}
+                    description={event.description}
+                    location={event.address}
+                    category={event.categoryName}
+                    organizerInitial={event.hostName.charAt(0)} // Take first letter of hostName
+                    status={mapStatusNameToEventStatus(event.statusName)}
+                    thumbnail={thumbnail}
+                  />
+                );
+              })}
             </KanbanColumn>
           </Grid>
 
           {/* In Progress Events Column */}
-          <Grid size={{xs:12, sm:6, md:4}}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <KanbanColumn elevation={2}>
               <ColumnTitle variant="h6" sx={{ backgroundColor: green[100], color: green[800] }}>
                 IN PROGRESS ({inProgressEvents.length})
               </ColumnTitle>
-              {inProgressEvents.map((event) => (
-                <SimpleEventCard
-                  id ={event.id}
-                  key={event.id}
-                  title={event.title}
-                  date={event.date}
-                  description={event.description}
-                  location={event.location}
-                  category={event.category}
-                  organizerInitial={event.organizer}
-                  status={event.status}
-                  thumbnail='https://via.placeholder.com/500x300'
-                />
-              ))}
+              {inProgressEvents.map((event) => {
+                const thumbnail = event.images.find((img) => img.isThumbnail)?.url || 'https://via.placeholder.com/500x300';
+                return (
+                  <SimpleEventCard
+                    id={event.eventId}
+                    key={event.eventId}
+                    title={event.eventName}
+                    date={event.startTime}
+                    description={event.description}
+                    location={event.address}
+                    category={event.categoryName}
+                    organizerInitial={event.hostName.charAt(0)}
+                    status={mapStatusNameToEventStatus(event.statusName)}
+                    thumbnail={thumbnail}
+                  />
+                );
+              })}
             </KanbanColumn>
           </Grid>
 
           {/* Completed Events Column */}
-          <Grid size={{xs:12, sm:6, md:4}}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <KanbanColumn elevation={2}>
               <ColumnTitle variant="h6" sx={{ backgroundColor: purple[100], color: purple[800] }}>
                 COMPLETED ({completedEvents.length})
               </ColumnTitle>
-              {completedEvents.map((event) => (
-                <SimpleEventCard
-                  id ={event.id}
-                  key={event.id}
-                  title={event.title}
-                  date={event.date}
-                  description={event.description}
-                  location={event.location}
-                  category={event.category}
-                  organizerInitial={event.organizer}
-                  status={event.status}
-                  thumbnail='https://via.placeholder.com/500x300'
-                />
-              ))}
+              {completedEvents.map((event) => {
+                const thumbnail = event.images.find((img) => img.isThumbnail)?.url || 'https://via.placeholder.com/500x300';
+                return (
+                  <SimpleEventCard
+                    id={event.eventId}
+                    key={event.eventId}
+                    title={event.eventName}
+                    date={event.startTime}
+                    description={event.description}
+                    location={event.address}
+                    category={event.categoryName}
+                    organizerInitial={event.hostName.charAt(0)}
+                    status={mapStatusNameToEventStatus(event.statusName)}
+                    thumbnail={thumbnail}
+                  />
+                );
+              })}
             </KanbanColumn>
           </Grid>
         </Grid>

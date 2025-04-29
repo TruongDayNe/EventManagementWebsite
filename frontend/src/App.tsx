@@ -67,7 +67,7 @@ export default function App() {
               
               {/* Event Routes */}
               <Route path="/event-kanban-board" element={<KanbanBoard />} />
-              <Route path="/events/:id" element={<EventDetail />} />
+              <Route path="/events/:eventId" element={<EventDetail />} />
             </Route>
 
             {/* Event creation stepper */}

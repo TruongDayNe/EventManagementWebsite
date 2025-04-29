@@ -21,19 +21,12 @@ namespace EventManagementWebAPI.Services
 
         public Event? GetEventById(ObjectId id)
         {
-            return _events.Find(e => e.EventId == id).FirstOrDefault();
+            return _events.Find(e => new ObjectId(e.EventId) == id).FirstOrDefault();
         }
 
         public async Task<CreateEventResult> CreateEventAsync(Event newEvent)
         {
             var result = new CreateEventResult();
-
-            // Check trùng tên sự kiện
-            var existingName = await _events.Find(e => e.EventName == newEvent.EventName).FirstOrDefaultAsync();
-            if (existingName != null)
-            {
-                result.Errors.Add("Sự kiện với tên này đã tồn tại.");
-            }
 
             // Tìm các sự kiện trong bán kính 1km
             var allEvents = GetAllEvents();
@@ -90,13 +83,13 @@ namespace EventManagementWebAPI.Services
         {
             var update = Builders<Event>.Update.Set(e => e.EventName, newEventName);
             var result = await _events.UpdateOneAsync(
-                e => e.EventId == ObjectId.Parse(eventId), update);
+                e => new ObjectId(e.EventId) == ObjectId.Parse(eventId), update);
             return result.IsAcknowledged && result.ModifiedCount > 0;
         }
 
         public async Task<bool> UpdateEventDateAsync(string eventId, DateTime newEventDate)
         {
-            var e = await _events.Find(ev => ev.EventId == ObjectId.Parse(eventId)).FirstOrDefaultAsync();
+            var e = await _events.Find(ev => new ObjectId(ev.EventId) == ObjectId.Parse(eventId)).FirstOrDefaultAsync();
             if (e == null) return false;
 
             var updatedStart = new DateTime(newEventDate.Year, newEventDate.Month, newEventDate.Day,
@@ -120,7 +113,7 @@ namespace EventManagementWebAPI.Services
                 .Set(e => e.Longitude, newLng);
 
             var result = await _events.UpdateOneAsync(
-                e => e.EventId == ObjectId.Parse(eventId), update);
+                e => new ObjectId(e.EventId) == ObjectId.Parse(eventId), update);
             return result.IsAcknowledged && result.ModifiedCount > 0;
         }
 
@@ -128,7 +121,7 @@ namespace EventManagementWebAPI.Services
         {
             var update = Builders<Event>.Update.Set(e => new ObjectId(e.CategoryId), ObjectId.Parse(newCategory));
             var result = await _events.UpdateOneAsync(
-                e => e.EventId == ObjectId.Parse(eventId), update);
+                e => new ObjectId(e.EventId) == ObjectId.Parse(eventId), update);
             return result.IsAcknowledged && result.ModifiedCount > 0;
         }
 
@@ -136,7 +129,7 @@ namespace EventManagementWebAPI.Services
         {
             var update = Builders<Event>.Update.Set(e => e.Description, newEventDescription);
             var result = await _events.UpdateOneAsync(
-                e => e.EventId == ObjectId.Parse(eventId), update);
+                e => new ObjectId(e.EventId) == ObjectId.Parse(eventId), update);
             return result.IsAcknowledged && result.ModifiedCount > 0;
         }
 
@@ -144,7 +137,7 @@ namespace EventManagementWebAPI.Services
         {
             var update = Builders<Event>.Update.Set(e => new ObjectId(e.StatusId), ObjectId.Parse(newEventStatus));
             var result = await _events.UpdateOneAsync(
-                e => e.EventId == ObjectId.Parse(eventId), update);
+                e => new ObjectId(e.EventId) == ObjectId.Parse(eventId), update);
             return result.IsAcknowledged && result.ModifiedCount > 0;
         }
 
@@ -155,7 +148,7 @@ namespace EventManagementWebAPI.Services
 
             var update = Builders<Event>.Update.Set(e => e.StartTime, parsedTime);
             var result = await _events.UpdateOneAsync(
-                e => e.EventId == ObjectId.Parse(eventId), update);
+                e => new ObjectId(e.EventId) == ObjectId.Parse(eventId), update);
             return result.IsAcknowledged && result.ModifiedCount > 0;
         }
 
@@ -166,7 +159,7 @@ namespace EventManagementWebAPI.Services
 
             var update = Builders<Event>.Update.Set(e => e.EndTime, parsedTime);
             var result = await _events.UpdateOneAsync(
-                e => e.EventId == ObjectId.Parse(eventId), update);
+                e => new ObjectId(e.EventId) == ObjectId.Parse(eventId), update);
             return result.IsAcknowledged && result.ModifiedCount > 0;
         }
 
@@ -177,7 +170,7 @@ namespace EventManagementWebAPI.Services
 
             var update = Builders<Event>.Update.Set(e => e.StartCheckin, parsedTime);
             var result = await _events.UpdateOneAsync(
-                e => e.EventId == ObjectId.Parse(eventId), update);
+                e => new ObjectId(e.EventId) == ObjectId.Parse(eventId), update);
             return result.IsAcknowledged && result.ModifiedCount > 0;
         }
 
@@ -188,7 +181,7 @@ namespace EventManagementWebAPI.Services
 
             var update = Builders<Event>.Update.Set(e => e.EndCheckin, parsedTime);
             var result = await _events.UpdateOneAsync(
-                e => e.EventId == ObjectId.Parse(eventId), update);
+                e => new ObjectId(e.EventId) == ObjectId.Parse(eventId), update);
             return result.IsAcknowledged && result.ModifiedCount > 0;
         }
 

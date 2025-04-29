@@ -180,14 +180,17 @@ export default function HorizontalLinearStepper() {
       const response = await axiosInstance.post('/api/Events/Create', formData);
       setResponseMessage(response.data.message || 'Event created successfully!');
       console.log("Uploaded keys in stepper:", uploadedFiles);
+      console.log("Response message:", response.data);
 
       for (var file in uploadedFiles) 
       {
-        const uploadData = {
-          eventId: response.data.eventId,
-          fileKey: uploadedFiles[file].key,
+        const uploadData =
+        {
+          imageKey: uploadedFiles[file].key,
+          eventId: response.data,
           isThumbnail: uploadedFiles[file].isThumbnail,
         };
+        console.log("Uploaded file data:", uploadData);
         await axiosInstance.post('/api/EventImages', uploadData);
       }
       // Redirect to calendar page on success

@@ -50,6 +50,7 @@ builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IStatusService, StatusService>();
 builder.Services.AddScoped<IEventImageService, EventImageService>();
+builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 
 // CORS
 builder.Services.AddCors(options =>

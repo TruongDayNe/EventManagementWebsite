@@ -9,15 +9,15 @@ namespace EventManagementWebAPI.Models
     {
         [BsonId]
         [BsonElement("AttendanceId"),BsonRepresentation(BsonType.ObjectId)]
-        public ObjectId AttendanceId { get; set; }
+        public ObjectId AttendanceId { get; set; } = ObjectId.GenerateNewId();
 
-        [BsonElement("EventId"), BsonRepresentation(BsonType.ObjectId)]
-        public ObjectId EventId { get; set; }
+        [BsonElement("EventId"), BsonRepresentation(BsonType.String)]
+        public string EventId { get; set; } = string.Empty;
 
-        [BsonElement("UserId"), BsonRepresentation(BsonType.ObjectId)]
-        public ObjectId UserId { get; set; }
+        [BsonElement("UserId"), BsonRepresentation(BsonType.String)]
+        public string UserId { get; set; } = string.Empty;
 
         [BsonElement("AttendanceTime"), BsonRepresentation(BsonType.DateTime)]
-        public DateTime AttendanceTime { get; set; }
+        public DateTime AttendanceTime { get; set; } = DateTime.UtcNow;
     }
 }

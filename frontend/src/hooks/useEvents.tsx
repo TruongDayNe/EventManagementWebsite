@@ -3,10 +3,7 @@ import { useState, useEffect } from "react";
 import axiosInstance from "../api/axiosInstance"; // Adjust the path based on your project structure
 
 interface ApiEvent {
-  eventId: {
-    timestamp: number;
-    creationTime: string;
-  };
+  eventId: string;
   eventName: string;
   categoryId: string;
   statusId: string;
@@ -50,7 +47,7 @@ export const useEvents = () => {
           const isMultiDay = start.toDateString() !== end.toDateString();
 
           return {
-            id: apiEvent.eventId.timestamp.toString(), // Use timestamp as the unique ID
+            id: apiEvent.eventId, // Use timestamp as the unique ID
             title: apiEvent.eventName,
             start: apiEvent.startTime,
             end: apiEvent.endTime,

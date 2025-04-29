@@ -15,7 +15,7 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 interface SimpleEventCardProps {
-  id: number; // Add id to props
+  id: string; // Keep as string to match eventId from useEventDetails
   title: string;
   date: string;
   description: string;
@@ -37,6 +37,7 @@ const SimpleEventCard: React.FC<SimpleEventCardProps> = ({
   id,
   title,
   date,
+  description,
   location,
   category,
   organizerInitial,
@@ -74,13 +75,13 @@ const SimpleEventCard: React.FC<SimpleEventCardProps> = ({
       <CardMedia
         component="img"
         height="150"
-        src={thumbnail}
-        alt={title}
+        src={thumbnail || '/images/event-thumbnail.jpg'} // Fallback for thumbnail
+        alt={title || 'Event'}
       />
       <CardHeader
         avatar={
           <Avatar sx={{ bgcolor: StatusColors[status] }} aria-label="organizer">
-            {organizerInitial}
+            {organizerInitial || 'U'} {/* Fallback for organizerInitial */}
           </Avatar>
         }
         action={
@@ -88,18 +89,21 @@ const SimpleEventCard: React.FC<SimpleEventCardProps> = ({
             <MoreVertIcon />
           </IconButton>
         }
-        title={title}
-        subheader={date}
+        title={title || 'Untitled Event'} // Fallback for title
+        subheader={date || 'Date unavailable'} // Fallback for date
       />
       <CardContent>
+        <Typography variant="body2" color="text.primary" sx={{ mb: 1 }}>
+          {description || 'No description available.'} {/* Display description */}
+        </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
           <LocationOnIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
           <Typography variant="body2" color="text.secondary">
-            {location}
+            {location || 'Location unavailable'}
           </Typography>
         </Box>
         <Chip
-          label={category}
+          label={category || 'Uncategorized'}
           size="small"
           sx={{ 
             mt: 1, 

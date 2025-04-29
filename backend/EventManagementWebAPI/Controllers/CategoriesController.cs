@@ -28,10 +28,11 @@ namespace EventManagementWebAPI.Controllers
         [HttpGet("{id}")]
         public IActionResult GetCategoryById(string id)
         {
-            var category = _categoryService.GetCategoryById(new ObjectId(id));
+            var categoryId = new ObjectId(id);
+            var category = _categoryService.GetCategoryById(categoryId);
             if (category == null)
             {
-                return NotFound();
+                return NotFound("No categories found.");
             }
             return Ok(category);
         }
