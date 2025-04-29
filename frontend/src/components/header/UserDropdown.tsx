@@ -3,6 +3,7 @@ import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../authContext/useAuth";
+import { Avatar } from "@mui/material";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,7 +36,12 @@ export default function UserDropdown() {
         className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400"
       >
         <span className="mr-3 overflow-hidden rounded-full h-11 w-11">
-          <img src="/images/user/owner.jpg" alt="User" /> {/* Có thể thay bằng avatar động từ user nếu có */}
+          <Avatar
+            alt={user.name} // Hiển thị tên người dùng
+            sx={{ width: 40, height: 40 }} // Kích thước của avatar
+          />
+          {user.name}
+          <Avatar/>
         </span>
 
         <span className="block mr-1 font-medium text-theme-sm">{user.name}</span> {/* Hiển thị tên người dùng */}

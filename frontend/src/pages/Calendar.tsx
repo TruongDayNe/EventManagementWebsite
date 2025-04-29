@@ -10,7 +10,7 @@ import PageMeta from "../components/common/PageMeta";
 import Label from "../components/form/Label";
 import Input from "../components/form/input/InputField";
 import Radio from "../components/form/input/Radio";
-import { TimeIcon } from "../../src/icons/index";
+import { TimeIcon } from "../icons/index";
 import { useEvents } from "../hooks/useEvents";
 
 interface CalendarEvent extends EventInput {
@@ -122,11 +122,12 @@ const Calendar: React.FC<CalendarProps> = ({ onEventSubmit }) => {
     }
   };
 
-  const validateDatesAndTimes = () => {
+  const validateDatesAndTimes = (): boolean => {
     setValidationError("");
-    const startISO = parseDDMMYYYYToISO(eventStartDate);
-    const endISO = parseDDMMYYYYToISO(eventEndDate || eventStartDate);
+    const startISO: string = parseDDMMYYYYToISO(eventStartDate);
+    const endISO: string = parseDDMMYYYYToISO(eventEndDate || eventStartDate);
     
+    // First validate required date formats
     if (!startISO) {
       setValidationError("Invalid start date format");
       return false;
@@ -138,16 +139,22 @@ const Calendar: React.FC<CalendarProps> = ({ onEventSubmit }) => {
     }
     
     // Create datetime objects for validation
-    const startDateTime = new Date(`${startISO}T${eventStartTime || "00:00"}`);
-    let endDateTime;
+    const startDateTime: Date = new Date(`${startISO}T${eventStartTime || "00:00"}`);
+    var endDateTime: Date;
     
     if (isMultiDay === "multiDay") {
       // For multi-day events
-      endDateTime = new Date(`${endISO}T${eventEndTime || eventStartTime || "00:00"}`);
+      if (!eventEndTime && !eventStartTime) {
+        // If no times specified, use default times
+        endDateTime = new Date(`${endISO}T00:00`);
+        console.log("Start DateTime:", endDateTime);
+      } else {
+        endDateTime = new Date(`${endISO}T${eventEndTime || eventStartTime || "00:00"}`);
+      }
       
       // Compare dates (ignoring time) for multi-day events
-      const startDateOnly = new Date(startISO);
-      const endDateOnly = new Date(endISO);
+      const startDateOnly: Date = new Date(startISO);
+      const endDateOnly: Date = new Date(endISO);
       
       if (endDateOnly < startDateOnly) {
         setValidationError("End date must be on or after start date");
@@ -155,25 +162,28 @@ const Calendar: React.FC<CalendarProps> = ({ onEventSubmit }) => {
       }
     } else {
       // For single-day events
-      endDateTime = eventEndTime
-        ? new Date(`${startISO}T${eventEndTime}`)
-        : new Date(startDateTime.getTime() + 3600000);
-      
-      // For single-day events, dates must be the same
-      if (startISO !== endISO) {
-        setValidationError("Single-day events must have the same start and end date");
-        return false;
+      if (eventEndTime) {
+        endDateTime = new Date(`${startISO}T${eventEndTime}`);
+        
+        // For single-day events with specified times, end time must be after start time
+        if (eventStartTime && eventEndTime <= eventStartTime) {
+          setValidationError("End time must be after start time for single-day events");
+          return false;
+        }
+      } else {
+        // Default duration of one hour if end time not specified
+        endDateTime = new Date(startDateTime.getTime() + 3600000);
       }
       
-      // For single-day events, end time must be after start time
-      if (eventEndTime && eventStartTime && eventEndTime <= eventStartTime) {
-        setValidationError("End time must be after start time for single-day events");
+      // For single-day events, validate that dates are the same
+      if (startISO !== endISO && endISO !== "") {
+        setValidationError("Single-day events must have the same start and end date");
         return false;
       }
     }
     
     return true;
-  };
+  }
 
   const handleAddOrUpdateEvent = () => {
     if (!validateDatesAndTimes()) {
