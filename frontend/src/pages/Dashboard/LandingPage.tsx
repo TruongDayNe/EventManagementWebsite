@@ -17,7 +17,9 @@ import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import SimpleEventCard from '../Event/SimpleEventCard';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
+import { useEventDetails } from '../../hooks/useEventDetails';
+import Loader from '../../components/Loader';
 
 // Styled components
 const StyledSlider = styled(Slider)(({ theme }) => ({
@@ -45,59 +47,44 @@ const HeroSection = styled(Box)(({ theme }) => ({
   textAlign: 'center',
 }));
 
-// Sample event data with additional properties for SimpleEventCard
-const events = [
-  {
-    id: 1,
-    title: 'Tech Conference 2024',
-    description: 'Join us for the biggest tech conference of the year featuring industry leaders and innovative workshops.',
-    date: 'March 15, 2024',
-    location: 'San Francisco, CA',
-    category: 'Technology',
-    organizerInitial: 'T',
-    status: 'upcoming' as const,
-    thumbnail: '/images/event-thumbnail.jpg',
-  },
-  {
-    id: 2,
-    title: 'Music Festival',
-    description: 'Three days of non-stop music featuring top artists from around the world.',
-    date: 'April 20, 2024',
-    location: 'Austin, TX',
-    category: 'Music',
-    organizerInitial: 'M',
-    status: 'upcoming' as const,
-    thumbnail: '/images/event-thumbnail.jpg',
-  },
-  {
-    id: 3,
-    title: 'Food & Wine Expo',
-    description: 'Experience culinary excellence with master chefs and sommelier-guided wine tastings.',
-    date: 'May 10, 2024',
-    location: 'New York, NY',
-    category: 'Food',
-    organizerInitial: 'F',
-    status: 'upcoming' as const,
-    thumbnail: '/images/event-thumbnail.jpg',
-  },
-  {
-    id: 4,
-    title: 'Art Exhibition',
-    description: 'Showcasing contemporary art from emerging and established artists worldwide.',
-    date: 'June 1, 2024',
-    location: 'Chicago, IL',
-    category: 'Art',
-    organizerInitial: 'A',
-    status: 'upcoming' as const,
-    thumbnail: '/images/event-thumbnail.jpg',
-  },
-];
-
+// Placeholder categories (replace with API data if available)
 const categories = ['Music', 'Tech', 'Food', 'Art'] as const;
 
 const LandingPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { events, loading, error } = useEventDetails();
+
+  // Utility functions from EventDetail
+  const getThumbnailUrl = (event: any): string => {
+    const thumbnailObj = event.images.find((img: any) => img.isThumbnail);
+    if (thumbnailObj) {
+      const urlField = thumbnailObj.url;
+      if (typeof urlField === 'string') {
+        return urlField;
+      } else if (typeof urlField === 'object' && urlField.url) {
+        return urlField.url;
+      }
+    }
+    return 'https://via.placeholder.com/500x300';
+  };
+
+  const mapStatusNameToEventStatus = (
+    statusName: string
+  ): 'upcoming' | 'inProgress' | 'completed' | 'cancelled' => {
+    switch (statusName.toLowerCase()) {
+      case 'upcoming':
+        return 'upcoming';
+      case 'in progress':
+        return 'inProgress';
+      case 'completed':
+        return 'completed';
+      case 'cancelled':
+        return 'cancelled';
+      default:
+        return 'upcoming';
+    }
+  };
 
   // Custom arrow components for slider
   const NextArrow: React.FC<{ onClick?: () => void }> = ({ onClick }) => {
@@ -165,6 +152,24 @@ const LandingPage: React.FC = () => {
     ],
   };
 
+  if (loading) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Loader />
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Typography variant="h6" color="error">
+          {error}
+        </Typography>
+      </Container>
+    );
+  }
+
   return (
     <Box>
       {/* Hero Section */}
@@ -202,7 +207,7 @@ const LandingPage: React.FC = () => {
         </Typography>
         <Grid container spacing={3}>
           {categories.map((category) => (
-            <Grid size={{ xs:6, md:3 }} key={category}>
+            <Grid size={{ xs: 6, md: 3 }} key={category}>
               <Paper
                 sx={{
                   p: 3,
@@ -233,21 +238,30 @@ const LandingPage: React.FC = () => {
         </Box>
 
         <StyledSlider {...sliderSettings}>
-          {events.map((event) => (
-            <Box key={event.id} sx={{ px: 1, height: '100%' }}>
-              <SimpleEventCard
-                id={event.id}
-                title={event.title}
-                date={event.date}
-                description={event.description}
-                location={event.location}
-                category={event.category}
-                organizerInitial={event.organizerInitial}
-                status={event.status}
-                thumbnail={event.thumbnail}
-              />
-            </Box>
-          ))}
+          {events.slice(0, 6).map((event) => {
+            const thumbnail = getThumbnailUrl(event) || '/images/event-thumbnail.jpg';
+            const organizerInitial = event.hostName?.charAt(0) || 'U';
+            const eventDate = new Date(event.startTime);
+            const formattedDate = !isNaN(eventDate.getTime())
+              ? eventDate.toLocaleDateString()
+              : 'Date unavailable';
+
+            return (
+              <Box key={event.eventId} sx={{ px: 1, height: '100%' }}>
+                <SimpleEventCard
+                  id={event.eventId}
+                  title={event.eventName}
+                  description={event.description || 'No description available.'}
+                  date={formattedDate}
+                  location={event.address || 'Location unavailable'}
+                  category={event.categoryName || 'Uncategorized'}
+                  organizerInitial={organizerInitial}
+                  status={mapStatusNameToEventStatus(event.statusName)}
+                  thumbnail={thumbnail}
+                />
+              </Box>
+            );
+          })}
         </StyledSlider>
       </Container>
 
@@ -270,7 +284,7 @@ const LandingPage: React.FC = () => {
                 Create and manage your events with our easy-to-use platform
               </Typography>
             </Grid>
-            <Grid size={{ xs: 12, md: 8 }} sx={{ textAlign: 'center' }}>
+            <Grid size={{ xs: 12, md: 4 }} sx={{ textAlign: 'center' }}>
               <Button
                 variant="contained"
                 size="large"
