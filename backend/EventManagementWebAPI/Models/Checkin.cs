@@ -8,9 +8,16 @@ namespace EventManagementWebAPI.Models
     [Collection("Checkins")]
     public class Checkin
     {
-        public ObjectId Id { get; set; }
+        [BsonId]
+        [BsonElement("CheckinId"), BsonRepresentation(BsonType.ObjectId)]
+        public ObjectId CheckinId { get; set; }
+
+        [BsonElement("AttendeeId"), BsonRepresentation(BsonType.ObjectId)]
         public ObjectId AttendeeId { get; set; }
+
+        [BsonElement("EventId"), BsonRepresentation(BsonType.ObjectId)]
         public ObjectId EventId { get; set; }
-        public DateTime AttendAt { get; set; }
+        [BsonElement("CheckinAt"), BsonRepresentation(BsonType.DateTime)]
+        public DateTime CheckinAt { get; set; }
     }
 }

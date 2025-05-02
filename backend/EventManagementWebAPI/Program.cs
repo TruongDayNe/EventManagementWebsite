@@ -1,105 +1,119 @@
 using MongoDB.Driver;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity;
-using EventManagementWebAPI.Data;
-using EventManagementWebAPI.Services;
+using System.Text;
 using EventManagementWebAPI.Models;
+using EventManagementWebAPI.Services;
+using EventManagementWebAPI.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using System.Text;
+using Amazon.S3;
+using Microsoft.Extensions.Options;
+using DotNetEnv;
+using Amazon.Runtime;
+using Amazon.SecurityToken.Model;
+using Amazon.SecurityToken;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Load MongoDB config
+var mongoDbConfigs = builder.Configuration.GetSection("MongoDbSettings").Get<MongoDbConfigs>()
+    ?? throw new Exception("Missing MongoDbSettings");
 
-// Add mongoDb services
-var mapMongoDbSettings = builder.Configuration.GetSection("MongoDbSettings").Get<MongoDbSettings>() 
-    ?? throw new Exception("MongoDbSettings section is missing in appsettings.json");
-
-builder.Services.Configure<MongoDbSettings>(
+builder.Services.Configure<MongoDbConfigs>(
     builder.Configuration.GetSection("MongoDbSettings"));
 
-var mongoClient = new MongoClient(mapMongoDbSettings.AtlasURI);
+builder.Services.AddSingleton<AppDbContext>();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-options.UseMongoDB(mongoClient, mapMongoDbSettings.DatabaseName));
-
-// log AtlasURI and dbname 
-Console.WriteLine($"MongoDB Atlas URI: {mapMongoDbSettings.AtlasURI}");
-Console.WriteLine($"MongoDB Database Name: {mapMongoDbSettings.DatabaseName}");
-
-try
-{
-    // Simple ping test
-    mongoClient.GetDatabase(mapMongoDbSettings.DatabaseName)
-        .RunCommand<MongoDB.Bson.BsonDocument>(new MongoDB.Bson.BsonDocument("ping", 1));
-    Console.WriteLine("Successfully connected to MongoDB Atlas!");
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"MongoDB connection test failed: {ex.Message}");
-}
-
-// identity
-builder.Services.AddIdentity<AppUser,IdentityRole>(options => 
-    {
-        options.SignIn.RequireConfirmedAccount = false; //turn on later
-
-        //pwd options
-        options.Password.RequireDigit = false;
-        options.Password.RequireNonAlphanumeric = false;
-        options.Password.RequireUppercase = false;
-        options.Password.RequireLowercase = false;
-        options.Password.RequiredLength = 0;
-        options.Password.RequiredUniqueChars = 0;
-
-        options.User.RequireUniqueEmail = false;
-     })
-    .AddEntityFrameworkStores<AppDbContext>()
-    .AddDefaultTokenProviders();
-
+// JWT Authentication
 builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = false,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+    };
+});
+
+// Services
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IEventService, EventService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IStatusService, StatusService>();
+builder.Services.AddScoped<IEventImageService, EventImageService>();
+builder.Services.AddScoped<IAttendanceService, AttendanceService>();
+
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPolicy", builder =>
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration.GetSection("JWT:Issuer").Value,
-            ValidAudience = builder.Configuration.GetSection("JWT:Audience").Value,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-                builder.Configuration.GetSection("JWT:Key").Value ?? throw new InvalidOperationException("JWT Key is missing")))
-        };
+        builder.WithOrigins("http://localhost:5173", "http://localhost", "localhost:80")
+               .AllowAnyMethod()
+               .AllowAnyHeader()
+               .AllowCredentials();
     });
+});
 
-builder.Services.AddTransient<IAuthService, AuthService>();
 builder.Services.AddControllers();
-
-builder.Services.AddOpenApi();
-
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.Configure<S3Settings>(builder.Configuration.GetSection("S3Settings"));
+
+builder.Services.AddSingleton<IAmazonS3>(sp =>
+{
+    var s3Settings = sp.GetRequiredService<IOptions<S3Settings>>().Value;
+
+    var config = new AmazonS3Config
+    {
+
+        RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(s3Settings.Region)
+    };
+    return new AmazonS3Client(config);
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// if (app.Environment.IsDevelopment())
+// {
+//     app.UseSwagger();
+//     app.UseSwaggerUI();
+// }
+app.UseSwagger();
+app.UseSwaggerUI();
+app.UseCors("CorsPolicy");
+// app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+
+//app.MapGet("/", () => "EventManagementWebAPI is running!");
+
+using (var scope = app.Services.CreateScope())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    var roleService = scope.ServiceProvider.GetRequiredService<IRoleService>();
+
+    string[] roles = { "Admin", "Organizer", "Attendant" };
+
+    foreach (var role in roles)
+    {
+        if (!await roleService.RoleExistsAsync(role))
+        {
+            await roleService.CreateRoleAsync(role);
+            Console.WriteLine($"Seeded role: {role}");
+        }
+    }
 }
 
-app.UseHttpsRedirection();
-
-//app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapControllers();
 
 app.Run();

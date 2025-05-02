@@ -1,13 +1,17 @@
 ﻿using MongoDB.Bson;
 using MongoDB.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
-
+using MongoDB.Bson.Serialization.Attributes;
 namespace EventManagementWebAPI.Models
 {
     [Collection("Status")]
     public class Status
     {
-        public ObjectId Id { get; set; }
-        public string status { get; set; } = string.Empty;
+        [BsonId]
+        [BsonElement("StatusId"), BsonRepresentation(BsonType.ObjectId)]
+        public ObjectId StatusId { get; set; }
+
+        [BsonElement("StatusName"), BsonRepresentation(BsonType.String)]
+        public string StatusName { get; set; } = string.Empty;
     }
 }

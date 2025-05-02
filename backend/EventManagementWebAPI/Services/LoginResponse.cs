@@ -1,9 +1,9 @@
-﻿namespace EventManagementWebAPI.Services
-{
-    public class LoginResponse
+﻿    namespace EventManagementWebAPI.Services
     {
-        public bool IsAuthenticated { get; set; } = false;
-        public string Token { get; set; } = string.Empty;
-        public string RefreshToken { get; internal set; } = string.Empty;
+        public class LoginResponse
+        {
+            public bool IsAuthenticated { get; set; } = false;
+            public string? Token { get; set; }
+            public string? RefreshToken { get; set; }
+        }
     }
-}

@@ -1,52 +1,59 @@
 ﻿using MongoDB.EntityFrameworkCore;
 using MongoDB.Bson;
 using System.ComponentModel.DataAnnotations;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace EventManagementWebAPI.Models
 {
     [Collection("Events")]
     public class Event
     {
-        public ObjectId Id { get; set; }
+        [BsonId]
+        [BsonElement("EventId"), BsonRepresentation(BsonType.ObjectId)]
+        public string EventId { get; set; } = ObjectId.GenerateNewId().ToString();
 
         [Required(ErrorMessage = "Event must have a name")]
-        [Display(Name = "Event Name")]
-        public string name { get; set; } = string.Empty;
+        [BsonElement("EventName"), BsonRepresentation(BsonType.String)]
+        public string EventName { get; set; } = string.Empty;
 
-        [Display(Name = "Event Status")]
-        public ObjectId status { get; set; }
+        [BsonElement("CategoryId"), BsonRepresentation(BsonType.ObjectId)]
+        public string CategoryId { get; set; } = string.Empty;
 
-        [Display(Name = "Event Đescription")]
-        public string description { get; set; } = string.Empty;
+        [BsonElement("StatusId"), BsonRepresentation(BsonType.ObjectId)]
+        public string StatusId { get; set; } = "680cf3c6a2614b1c13daac2d"; // upcoming
+
+        [BsonElement("Description"), BsonRepresentation(BsonType.String)]
+        public string Description { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Event must have an address")]
-        [Display(Name = "Event Address")]
-        public string address { get; set; } = "54 Nguyễn Lương Bằng";
+        [BsonElement("Address"), BsonRepresentation(BsonType.String)]   
+        public string Address { get; set; } = "54 Nguyễn Lương Bằng";
 
-        public double longitude = 16.073652710981197;
-        public double latitude = 108.14986892217975;
+        [BsonElement("Latitude"), BsonRepresentation(BsonType.Double)]
+        public double Latitude = 108.152;
 
-        [Display(Name = "Event Host")]
-        public ObjectId host { get; set; }
+        [BsonElement("Longitude"), BsonRepresentation(BsonType.Double)]
+        public double Longitude = 16.0748;
+
+        [BsonElement("HostId"), BsonRepresentation(BsonType.String)]
+        public string HostId { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Event must have a start time")]
-        [Display(Name = "Event Start Time")]
-        public DateTime startTime { get; set; } = DateTime.Now.AddDays(7);
+        [BsonElement("StartTime"), BsonRepresentation(BsonType.DateTime)]
+        public DateTime StartTime { get; set; } = DateTime.Now.AddDays(7);
 
         [Required(ErrorMessage = "Event must have an end time")]
-        [Display(Name = "Event End Time")]
-        public DateTime endTime { get; set; } = DateTime.Now.AddDays(8);
+        [BsonElement("EndTime"), BsonRepresentation(BsonType.DateTime)]
+        public DateTime EndTime { get; set; } = DateTime.Now.AddDays(8);
 
-        [Display(Name = "Event Creation Time")]
-        public DateTime createAt { get; set; } = DateTime.Now;
+        [BsonElement("StartCheckin"), BsonRepresentation(BsonType.DateTime)]
+        public DateTime StartCheckin { get; set; } = DateTime.Now.AddDays(7);
 
-        [Display(Name = "Start checkin time")]
-        public DateTime startCheckin { get; set; } = DateTime.Now.AddDays(7);
+        [BsonElement("EndCheckin"), BsonRepresentation(BsonType.DateTime)]
+        public DateTime EndCheckin { get; set; } = DateTime.Now.AddDays(8);
 
-        [Display(Name = "End checkin time")]
-        public DateTime endCheckin { get; set; } = DateTime.Now.AddDays(7);
-
-
+        [BsonElement("CreateAt"), BsonRepresentation(BsonType.DateTime)]
+        public DateTime CreateAt { get; set; } = DateTime.Now;
 
     }
 }

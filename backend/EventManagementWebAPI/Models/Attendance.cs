@@ -7,9 +7,17 @@ namespace EventManagementWebAPI.Models
     [Collection("Attendances")]
     public class Attendance
     {
-        public ObjectId AttendanceId { get; set; }
-        public ObjectId EventId { get; set; }
-        public ObjectId UserId { get; set; }
-        public DateTime AttendanceTime { get; set; }
+        [BsonId]
+        [BsonElement("AttendanceId"),BsonRepresentation(BsonType.ObjectId)]
+        public ObjectId AttendanceId { get; set; } = ObjectId.GenerateNewId();
+
+        [BsonElement("EventId"), BsonRepresentation(BsonType.String)]
+        public string EventId { get; set; } = string.Empty;
+
+        [BsonElement("UserId"), BsonRepresentation(BsonType.String)]
+        public string UserId { get; set; } = string.Empty;
+
+        [BsonElement("AttendanceTime"), BsonRepresentation(BsonType.DateTime)]
+        public DateTime AttendanceTime { get; set; } = DateTime.UtcNow;
     }
 }
