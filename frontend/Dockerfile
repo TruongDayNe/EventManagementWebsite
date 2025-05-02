@@ -1,5 +1,5 @@
 # Build Stage
-FROM node:21-alpine AS build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
@@ -10,11 +10,10 @@ COPY . .
 RUN npm run build
 
 # Production Stage
-FROM node:21-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
-# Install `serve` package
 RUN npm install -g serve
 
 COPY --from=build /app/dist ./dist
