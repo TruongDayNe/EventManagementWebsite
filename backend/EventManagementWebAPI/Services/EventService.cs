@@ -2,18 +2,149 @@
 using EventManagementWebAPI.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Amazon.S3;
+using Amazon.S3.Model;
+using Microsoft.Extensions.Options;
 
 namespace EventManagementWebAPI.Services
 {
     public class EventService : IEventService
     {
         private readonly IMongoCollection<Event> _events;
+        private readonly IMongoCollection<Category> _categories;
+        private readonly IMongoCollection<Status> _statuses;
+        private readonly IMongoCollection<AppUser> _users;
+        private readonly IMongoCollection<EventImage> _eventImages;
+        
+        private readonly IAmazonS3 _s3Client;
+        private readonly S3Settings _s3Settings;
 
-        public EventService(AppDbContext context)
+        public EventService(AppDbContext context, IAmazonS3 s3Client, IOptions<S3Settings> s3Settings)
         {
             _events = context.Events;
+            _categories = context.Categories;
+            _statuses = context.Statuses;
+            _users = context.AppUsers;
+            _eventImages = context.EventImages;
+            _s3Client = s3Client;
+            _s3Settings = s3Settings.Value;
         }
 
+        // --- HÀM ĐÃ ĐƯỢC FIX LỖI ---
+        public async Task<List<EventDetailDto>> GetAllEventDetailsAsync()
+        {
+            // 1. Lấy tất cả events
+            var events = await _events.Find(_ => true).ToListAsync();
+            if (!events.Any()) return new List<EventDetailDto>();
+
+            // 2. Gom ID (Batching)
+            
+            // FIX: CategoryId trong Model là string [BsonRepresentation(ObjectId)]
+            // -> Nên ta giữ nguyên list là string, không Parse sang ObjectId ở đây
+            var categoryIds = events
+                .Select(e => e.CategoryId)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct()
+                .ToList();
+
+            // StatusId trong Model là ObjectId -> Cần Parse từ string sang ObjectId
+            var statusIds = events
+                .Select(e => e.StatusId)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct()
+                .Select(id => ObjectId.Parse(id))
+                .ToList();
+            
+            // UserId trong Model là ObjectId -> Cần Parse từ string sang ObjectId
+            var hostIds = events
+                .Select(e => e.HostId)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct()
+                .Select(id => ObjectId.Parse(id))
+                .ToList();
+
+            var eventIds = events.Select(e => e.EventId).ToList();
+
+            // 3. Thực hiện query song song
+            
+            // FIX: So sánh string với string (Driver tự động map sang ObjectId trong DB)
+            var taskCategories = _categories.Find(c => categoryIds.Contains(c.CategoryId)).ToListAsync();
+            
+            // Status và User dùng ObjectId nên query bình thường
+            var taskStatuses = _statuses.Find(s => statusIds.Contains(s.StatusId)).ToListAsync();
+            var taskUsers = _users.Find(u => hostIds.Contains(u.UserId)).ToListAsync();
+            
+            var taskImages = _eventImages.Find(img => eventIds.Contains(img.EventId)).ToListAsync();
+
+            await Task.WhenAll(taskCategories, taskStatuses, taskUsers, taskImages);
+
+            var categories = await taskCategories;
+            var statuses = await taskStatuses;
+            var users = await taskUsers;
+            var images = await taskImages;
+
+            // 4. Tạo Dictionary để map dữ liệu
+            var categoryMap = categories.ToDictionary(k => k.CategoryId, v => v.CategoryName);
+            var statusMap = statuses.ToDictionary(k => k.StatusId.ToString(), v => v.StatusName);
+            var userMap = users.ToDictionary(k => k.UserId.ToString(), v => v.UserName); // Lấy UserName hoặc Name tùy ý
+            
+            var imagesMap = images.GroupBy(img => img.EventId)
+                                  .ToDictionary(g => g.Key, g => g.ToList());
+
+            // 5. Ráp dữ liệu
+            var result = events.Select(e => new EventDetailDto
+            {
+                EventId = e.EventId,
+                EventName = e.EventName,
+                Description = e.Description,
+                Address = e.Address,
+                StartTime = e.StartTime,
+                EndTime = e.EndTime,
+                StartCheckin = e.StartCheckin,
+                EndCheckin = e.EndCheckin,
+                CreateAt = e.CreateAt,
+                Latitude = e.Latitude,
+                Longitude = e.Longitude,
+
+                // Lookup an toàn với ContainsKey
+                CategoryName = categoryMap.ContainsKey(e.CategoryId) ? categoryMap[e.CategoryId] : "Unknown Category",
+                StatusName = statusMap.ContainsKey(e.StatusId) ? statusMap[e.StatusId] : "Unknown Status",
+                HostName = userMap.ContainsKey(e.HostId) ? userMap[e.HostId] : "Unknown Host",
+
+                Images = imagesMap.ContainsKey(e.EventId) 
+                    ? imagesMap[e.EventId].Select(img => new EventImageDto 
+                    { 
+                        ImageKey = img.ImageKey,
+                        IsThumbnail = img.IsThumbnail,
+                        Url = GeneratePresignedUrl(img.ImageKey) 
+                    }).ToList() 
+                    : new List<EventImageDto>()
+            }).ToList();
+
+            return result;
+        }
+
+        private string GeneratePresignedUrl(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return "";
+            try
+            {
+                var request = new GetPreSignedUrlRequest
+                {
+                    BucketName = _s3Settings.BucketName,
+                    Key = key,
+                    Verb = HttpVerb.GET,
+                    Expires = DateTime.UtcNow.AddMinutes(60)
+                };
+                return _s3Client.GetPreSignedURL(request);
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        // --- CÁC HÀM KHÁC GIỮ NGUYÊN NHƯ CŨ ---
         public List<Event> GetAllEvents()
         {
             return _events.Find(_ => true).ToList();
@@ -28,7 +159,6 @@ namespace EventManagementWebAPI.Services
         {
             var result = new CreateEventResult();
 
-            // Tìm các sự kiện trong bán kính 1km
             var allEvents = GetAllEvents();
             foreach (var e in allEvents)
             {
@@ -46,14 +176,12 @@ namespace EventManagementWebAPI.Services
                 }
             }
 
-            // Nếu có lỗi thì trả về
             if (result.Errors.Count > 0)
             {
                 result.Succeeded = false;
                 return result;
             }
 
-            // Tạo sự kiện nếu hợp lệ
             await _events.InsertOneAsync(newEvent);
             result.Succeeded = true;
             return result;
@@ -61,7 +189,7 @@ namespace EventManagementWebAPI.Services
 
         private double GetDistanceInKm(double lat1, double lng1, double lat2, double lng2)
         {
-            const double R = 6371; // bán kính trái đất (km)
+            const double R = 6371; 
             var dLat = ToRadians(lat2 - lat1);
             var dLng = ToRadians(lng2 - lng1);
             var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
@@ -72,7 +200,6 @@ namespace EventManagementWebAPI.Services
         }
 
         private double ToRadians(double deg) => deg * (Math.PI / 180);  
-
 
         public void DeleteEvent(Event eventToDeletion)
         {
@@ -184,7 +311,5 @@ namespace EventManagementWebAPI.Services
                 e => new ObjectId(e.EventId) == ObjectId.Parse(eventId), update);
             return result.IsAcknowledged && result.ModifiedCount > 0;
         }
-
-
     }
 }

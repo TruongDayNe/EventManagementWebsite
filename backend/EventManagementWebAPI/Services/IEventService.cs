@@ -21,6 +21,6 @@ namespace EventManagementWebAPI.Services
         Task<bool> UpdateStartCheckinAsync(string eventId, string newStartCheckin);
         Task<bool> UpdateEndCheckinAsync(string eventId, string newEndCheckin);
 
-
+        Task<List<EventDetailDto>> GetAllEventDetailsAsync();
     }
 }

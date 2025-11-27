@@ -35,7 +35,7 @@ namespace EventManagementWebAPI.Models
         [BsonElement("Longitude"), BsonRepresentation(BsonType.Double)]
         public double Longitude = 16.0748;
 
-        [BsonElement("HostId"), BsonRepresentation(BsonType.String)]
+        [BsonElement("HostId"), BsonRepresentation(BsonType.ObjectId)]
         public string HostId { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Event must have a start time")]

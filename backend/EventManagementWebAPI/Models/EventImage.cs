@@ -12,7 +12,7 @@ namespace EventManagementWebAPI.Models
         public ObjectId EventImageId { get; set; } = ObjectId.GenerateNewId();
         [BsonElement("ImageKey"), BsonRepresentation(BsonType.String)]
         public string ImageKey { get; set; } = string.Empty;
-        [BsonElement("EventId"), BsonRepresentation(BsonType.String)]
+        [BsonElement("EventId"), BsonRepresentation(BsonType.ObjectId)]
         
         public string EventId { get; set; } = string.Empty;
         [BsonElement("IsThumbnail"), BsonRepresentation(BsonType.Boolean)]

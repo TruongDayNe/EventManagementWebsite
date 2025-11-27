@@ -19,12 +19,15 @@ namespace EventManagementWebAPI.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetAllEvents()
+        public async Task<IActionResult> GetAllEvents()
         {
-            var events = _eventService.GetAllEvents();
+            // SỬA CHỖ NÀY: Gọi hàm mới trả về DTO
+            var events = await _eventService.GetAllEventDetailsAsync();
+            
             if (events == null || events.Count == 0)
             {
-                return NotFound("No events found");
+                // Trả về mảng rỗng thay vì 404 để frontend dễ xử lý
+                return Ok(new List<EventDetailDto>()); 
             }
             return Ok(events);
         }
